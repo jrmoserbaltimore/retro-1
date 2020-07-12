@@ -4,23 +4,18 @@
 // 16-bit double data rate
 
 interface RetroComm;
-// Base system
-logic Reset;
-logic Pause;
-logic Interrupt;
+logic Interrupt;  // Target interrupts host.  Target always treats Strobe as interrupt.
 
 // Data
 logic Clk;
 logic [15:0] DInitiator;  // Initiator output target input
 logic [15:0] DTarget;  // Initiator input target output
-logic IStrobe;
+logic IStrobe; // Data is ready
 logic TStrobe;
 
 modport Initiator
 (
     input Clk,
-    output Reset,
-    output Pause,
     input Interrupt,
 
     // Data
@@ -33,8 +28,6 @@ modport Initiator
 modport Target
 (
     input Clk,
-    input Reset,
-    input Pause,
     output Interrupt,
     
     input .Din(DInitiator), 
