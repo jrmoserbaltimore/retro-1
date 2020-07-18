@@ -15,8 +15,8 @@ Check out this repository as a submodule at the `retro` subdirectory, and your
 core as a subdirectory of `cores`:
 
 ```
-git submodule --name retro [retro-repo] retro
-git submodule --name mycore [mycore-repo] cores/mycore
+git submodule add --name retro [retro-repo] retro
+git submodule add --name mycore [mycore-repo] cores/mycore
 ```
 
 Then create a toplevel module that incorporates the `retro` and `mycore`
@@ -96,3 +96,7 @@ the DE10-nano at a similar price.
 
 You can integrate the Retro core into other hardware in the manner above, such
 as to produce a USB or PCI-Express peripheral.
+
+# Credits
+
+DDR3 is a complicated beast, and the BSD-licensed [LiteDRAM](https://github.com/enjoy-digital/litedram) handles all that without a $50,000 IP license or in-house code.  LiteDRAM saves a great deal of trouble implementing DDR up to DDR4 and LPDDR.  It supports AXI-MM or a simple Wishbone interface.
