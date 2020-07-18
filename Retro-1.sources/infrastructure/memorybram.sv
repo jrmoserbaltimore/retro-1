@@ -26,9 +26,9 @@ module RetroBRAM
         //  If a reset or enable is not necessary, it may be tied off or removed from the code.
         //  Modify the parameters for the desired RAM characteristics.
 
-        localparam NB_COL = 1;                           // Specify number of columns (number of bytes)
-        localparam COL_WIDTH = 8*DataBusWidth;             // Specify column width (byte width, typically 8 or 9)
-        localparam RAM_DEPTH = 2**AddressBusWidth;          // Specify RAM depth (number of entries)
+        localparam NB_COL = DataBusWidth;            // Specify number of columns (number of bytes)
+        localparam COL_WIDTH = 8;                    // Specify column width (byte width, typically 8 or 9)
+        localparam RAM_DEPTH = 2**AddressBusWidth;   // Specify RAM depth (number of entries)
 
         logic [(NB_COL*COL_WIDTH)-1:0] Bram [RAM_DEPTH-1:0];
         logic [(NB_COL*COL_WIDTH)-1:0] BramData = {(NB_COL*COL_WIDTH){1'b0}};
