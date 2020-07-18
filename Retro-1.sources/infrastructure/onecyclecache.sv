@@ -7,16 +7,16 @@
 //  - Write complete, aligned 128 bytes of cache at once
 //  - Extend the address width to include the bank number as MSB
 //
-// This only works when the reference clock is a multiple of the core's standard reference clock.
 // Upon miss, the controller will delay the core; this occurs between standard reference clock
 // ticks, and the catch-up counter only increments on standard ticks, so CCCU will count the tick.
 //
-// Cache and Storage must be on the same clock.
+// Cache and Storage must be on the same clock.  Currently the cache can only use BRAM because the
+// 
 
 module RetroOneCycleCache
 #(
     parameter int AddressBusWidth = 16,
-    parameter int DataBusWidth = 8,
+    parameter int DataBusWidth = 1, // Bytes XXX: Needed here?
     parameter int CacheLineBits = 7,
     parameter int CacheIndexBits = 7 // 16Kio cache, 4 blocks BRAM
 )

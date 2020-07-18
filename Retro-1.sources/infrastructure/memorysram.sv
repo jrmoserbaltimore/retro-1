@@ -15,14 +15,14 @@
 module RetroSRAM
 #(
     parameter int AddressBusWidth = 16,
-    parameter int DataBusWidth = 8
+    parameter int DataBusWidth = 1 // bytes
 )
 (
     RetroMemoryPort.Target Initiator,
     output bit [AddressBusWidth-1:0] Address,
     output logic Write,
-    output bit [DataBusWidth-1:0] Dout,
-    input bit [DataBusWidth-1:0] Din
+    output bit [8*DataBusWidth-1:0] Dout,
+    input bit [8*DataBusWidth-1:0] Din
 );
     assign Write = Initiator.Write & Initiator.Access;
     assign Address = Initiator.Address;

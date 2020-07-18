@@ -14,13 +14,13 @@
 interface RetroMemoryPort
 #(
     parameter int AddressBusWidth = 16,
-    parameter int DataBusWidth = 8
+    parameter int DataBusWidth = 1 // Bytes
 );
 logic Clk;
 logic [AddressBusWidth-1:0] Address;
-logic [DataBusWidth-1:0] DInitiator;
-logic [DataBusWidth-1:0] DTarget;
-logic Access;
+logic [8*DataBusWidth-1:0] DInitiator;
+logic [8*DataBusWidth-1:0] DTarget;
+logic [8*DataBusWidth-1:0] Access;  // set to 1 when accessing, ever, or it does nothing
 logic Write;
 logic Ready;
 logic DataReady;

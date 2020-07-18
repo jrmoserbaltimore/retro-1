@@ -8,54 +8,53 @@
 module RetroBRAM
 #(
     parameter int AddressBusWidth = 16,
-    parameter int DataBusWidth = 8
+    parameter int DataBusWidth = 1, // Bytes
+    parameter string DeviceType = "Xilinx"
 )
 (
     RetroMemoryPort.Target Initiator
 );
     assign Initiator.Ready = '1;
-    assign Initiator.DataReady = '1;
+    assign Initiator.DataReady = ~(|Initiator.Write) & Initiator.Access; // Data ready on read
     
-    // TODO:  Instantiate multiple BRAMs based on AddressBusWidth, multiplex across them based on
-    // DataBusWidth, mux when exceeding DataBusWidth. e.g. for 16-bit address bus at 8-bit data
-    // width, a 7-series requires 16 36Kb (4Kio + ECC) blocks, so we must fetch 16 bits at a time
-    // and use WE to control when writing a byte.
-    
-`ifdef 7SERIES
-   // BRAM_SINGLE_MACRO: Single Port RAM
-   // Xilinx HDL Language Template, version 2020.1
+    generate
+    if (DeviceType == "Xilinx")
+    begin: Xilinx_BRAM_Inferred
+        //  Xilinx Single Port Byte-Write Read First RAM
+        //  This code implements a parameterizable single-port byte-write read-first memory where when data
+        //  is written to the memory, the output reflects the prior contents of the memory location.
+        //  If a reset or enable is not necessary, it may be tied off or removed from the code.
+        //  Modify the parameters for the desired RAM characteristics.
 
-   /////////////////////////////////////////////////////////////////////
-   //  READ_WIDTH | BRAM_SIZE | READ Depth  | ADDR Width |            //
-   // WRITE_WIDTH |           | WRITE Depth |            |  WE Width  //
-   // ============|===========|=============|============|============//
-   //    37-72    |  "36Kb"   |      512    |    9-bit   |    8-bit   //
-   //    19-36    |  "36Kb"   |     1024    |   10-bit   |    4-bit   //
-   //    10-18    |  "36Kb"   |     2048    |   11-bit   |    2-bit   //
-   //     5-9     |  "36Kb"   |     4096    |   12-bit   |    1-bit   //
-   //     3-4     |  "36Kb"   |     8192    |   13-bit   |    1-bit   //
-   //       2     |  "36Kb"   |    16384    |   14-bit   |    1-bit   //
-   //       1     |  "36Kb"   |    32768    |   15-bit   |    1-bit   //
-   /////////////////////////////////////////////////////////////////////
+        localparam NB_COL = 1;                           // Specify number of columns (number of bytes)
+        localparam COL_WIDTH = 8*DataBusWidth;             // Specify column width (byte width, typically 8 or 9)
+        localparam RAM_DEPTH = 2**AddressBusWidth;          // Specify RAM depth (number of entries)
 
-   BRAM_SINGLE_MACRO #(
-      .BRAM_SIZE("36Kb"), 
-      .DEVICE("7SERIES"), // Target Device: "7SERIES" 
-      .DO_REG(0), // Output register adds a cycle of latency
-      .WRITE_WIDTH(DataBusWidth), // Valid values are 1-72 (37-72 only valid when BRAM_SIZE="36Kb")
-      .READ_WIDTH(DataBusWidth),  // Valid values are 1-72 (37-72 only valid when BRAM_SIZE="36Kb")
-      .WRITE_MODE("WRITE_FIRST"), // "WRITE_FIRST", "READ_FIRST", or "NO_CHANGE" 
+        logic [(NB_COL*COL_WIDTH)-1:0] Bram [RAM_DEPTH-1:0];
+        logic [(NB_COL*COL_WIDTH)-1:0] BramData = {(NB_COL*COL_WIDTH){1'b0}};
 
-   ) BRAMBlock (
-      .DO(DO),       // Output data, width defined by READ_WIDTH parameter
-      .ADDR(ADDR),   // Input address, width defined by read/write port depth
-      .CLK(CLK),     // 1-bit input clock
-      .DI(DI),       // Input data port, width defined by WRITE_WIDTH parameter
-      .EN(EN),       // 1-bit input RAM enable
-      .REGCE(REGCE), // 1-bit input output register enable
-      .RST(RST),     // 1-bit input reset
-      .WE(WE)        // Input write enable, width defined by write port depth
-   );
+            // Initialize memory to all zeroes
+            // XXX:  Is this strictly necessary to cause BRAM inferrence?
+            integer ram_index;
+            initial
+                for (ram_index = 0; ram_index < RAM_DEPTH; ram_index = ram_index + 1)
+                    Bram[ram_index] = {(NB_COL*COL_WIDTH){1'b0}};
 
-`endif
+        always @(posedge Initiator.Clk)
+        if (Initiator.Access)
+        begin
+          Initiator.Dout <= Bram[Initiator.Address];
+        end
+
+        genvar i;
+            for (i = 0; i < NB_COL; i = i+1) begin: byte_write
+                always @(posedge Initiator.Clk)
+                if (Initiator.Access && Initiator.Write[i])
+                begin
+                    Bram[Initiator.Address][(i+1)*COL_WIDTH-1:i*COL_WIDTH]
+                      <= Initiator.Din[(i+1)*COL_WIDTH-1:i*COL_WIDTH];
+                end
+            end
+        end
+    endgenerate
 endmodule
