@@ -7,7 +7,7 @@
 
 module RetroBRAM
 #(
-    parameter int AddressBusWidth = 16,
+    parameter int AddressBusWidth = 12,  // 4096 bytes = 1 block 8 bit + ecc on 7-series
     parameter int DataBusWidth = 1, // Bytes
     parameter string DeviceType = "Xilinx"
 )
