@@ -24,34 +24,112 @@
 // Sega CD uses a 12.5MHz (80ns) Motorola 68000; the 32X uses a 23MHz (43ns) SH2.  If these cannot
 // run at 4x, then the core must buffer audio samples—although the buffer can be a few dozen
 // microseconds.
+//
+// This also has a frequent cycle-check feature for cycle-accurate timing control (CATC) by running
+// the (multiplied) reference clock slightly-slow and checking frequently for lag, then
+// accelerating.
 
 module ClockCCU
 #(
-    parameter int ClockFactor = 2
+    parameter int ClockFactor = 2,
+    parameter int CoreClock = 200000000, // 200MHz FPGA core clock
+    parameter int ReferenceClock = 21477272, // NES reference clock
+    parameter int TestFrequency = 18 // 1 second / 2^n, here 3.81 microseconds
 )
 (
     input Clk,
     input Delay, // Create a delay
     input CeIn,
+    input Reset,
     output Ce
 );
-
-    localparam ClockDivBits = 2**ClockFactor;
-    bit [ClockDivBits-1:0] ClockDiv;
-    bit [15:0] CatchUp;
+    // Number of core clock cycles that pass between tests
+    localparam int CoreCheckCycles = CoreClock / 2**TestFrequency;
+    // Number of Reference Clock cycles that should have passed at each check.
+    // ReferenceClock * 2**TestFrequency / CoreClock
+    localparam int CheckCycles = 2**ClockFactor * ReferenceClock / CoreCheckCycles;
     
-    // Enable at the divided clock frequency or when catching up, but not when delaying
-    assign Ce = (!ClockDiv | |CatchUp) & !Delay & CeIn;
+     // Clock divider to produce reference clock, slightly-slow if inexact.
+     // e.g. 28.9% underclocked for NTSC NES.  With the defaults above, this is 23.64 reference
+     // clock cycles behind at each check or almost 2 CPU clock cycles or 6 PPU cycles, checked
+     // every 3.81 microseconds
+     //
+     // The clock factor is how much faster the reference clock should run, so multiplies the
+     // reference clock.  Adding 1 is a substitute for ceiling.
+    localparam int CoreDiv = 1 + (CoreClock / (ReferenceClock * 2**ClockFactor));
+ 
+    // Catch-up rate
+    localparam int CoreDivCatchup = ClockFactor * ReferenceClock / CoreClock;
+    localparam int ClockDivBits = 2**$clog2(CoreDiv);
+    
+    bit [ClockDivBits-1:0] CoreClockDiv;
+    bit [ClockFactor-1:0] ReferenceClockDiv;
+    bit [15:0] CatchUp;
+    bit [29:0] CoreCycles; // Core cycle counter
+    bit [29:0] ReferenceCycles; // Reference cycle counting
+    bit [TestFrequency:0] TestCount; // Yes it's meant to be 1 bit wider
+    
+    // Enable at the divided clock frequency or when catching up, but not when delaying.
+    // Don't run at the full reference clock
+    assign Ce = (!ReferenceClockDiv || CatchUp > 0) && !Delay && CeIn && !CoreClockDiv;
     
     always_ff @(posedge Clk)
+    if (Reset)
     begin
-        if (CeIn)
+        CoreClockDiv = '0;
+        ReferenceClockDiv = '0;
+        CatchUp = '0;
+        CoreCycles = '0;
+        ReferenceCycles = '0;
+        TestCount = '1;
+    end
+    
+    always_ff @(posedge Clk)
+    if (CeIn && !Reset)
+    begin
+        if (CoreCycles == CoreClock - 1)
         begin
-            if (Delay & !ClockDiv) CatchUp++;
-            // We're trying to catch up, but the clock is still ticking, so count those ticks too
-            if (!Delay && ClockDiv == 0 && CatchUp > 0) CatchUp--;
-            // Keep ticking the divider so the clock ticks will line up
-            ClockDiv++;
+            // it's cycle check time
+            // One full second has passed.  Align the clocks.
+            // Delay is implied here.
+            CatchUp <= CatchUp + ReferenceClock - ReferenceCycles
+                + (CoreClockDiv == CoreClockDiv - 1 && !ReferenceClockDiv);
+            // If the core clock divides evenly, then this happens.
+            TestCount <= TestCount + (CoreCycles == CoreCheckCycles * TestCount) ? 1 : 0;
         end
+        else if (CoreCycles == CoreCheckCycles * TestCount)
+        begin
+            // Multiply the cycles per check times the number of tests, and subtract the actual
+            // cycles passed.
+            // Delay is implied here.
+            CatchUp <= CatchUp + CheckCycles * TestCount - CoreCycles
+                + (CoreClockDiv == CoreClockDiv - 1 && !ReferenceClockDiv);
+            if (TestCount[TestFrequency] && TestCount[1])
+            begin
+                // Reduce the number of reference clock cycles by 1 second and reset the test
+                // count by as much.  This ensures the precisely-aligned check never fires when
+                // ReferenceCycles > ReferenceClock. 
+                ReferenceCycles <= ReferenceCycles - ReferenceClock; // no tick
+                TestCount[TestFrequency] <= '0;
+            end
+            else
+            begin
+                TestCount <= TestCount + 1;
+            end
+        end
+        else if (CoreClockDiv == CoreDiv - 1)
+        begin
+            // Always increment when ticking on delay
+            if (Delay & !ReferenceClockDiv) CatchUp <= CatchUp + 1;
+            // We're trying to catch up, but the clock is still ticking, so count those ticks too
+            if (!Delay && ReferenceClockDiv != 0 && CatchUp > 0) CatchUp <= CatchUp - 1;
+            // Keep ticking the divider so the clock ticks will line up
+            ReferenceClockDiv <= ReferenceClockDiv + 1;
+            ReferenceCycles <= ReferenceCycles + 1; // Count the tick
+        end
+        // Manage the core clock divider
+        CoreClockDiv <= (CoreClockDiv == CoreDiv - 1) ? 0 : CoreClockDiv + 1;
+        // Manage core clock cycle counter
+        CoreCycles <= (CoreCycles == CoreClock - 1) ? '0 : CoreCycles + 1;
     end
 endmodule
