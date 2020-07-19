@@ -1,7 +1,7 @@
 // vim: sw=4 ts=4 et
-// Clock Control Catch-Up infrastructure
+// Cycle Accurate Timing Control (CATC) infrastructure
 //
-// The CCCU module controls the reference clock into a core to work around timing issues.
+// The CATC module controls the reference clock into a core to work around timing issues.
 //
 // The reference clock for a core is a multiple of the standard reference clock.  The core only
 // ticks on Ce, acting as a clock divider.
@@ -20,16 +20,15 @@
 // single audio sample.  These timings don't change on other systems:  on Gameboy Color, 113 rather
 // than 24 CPU ticks makes 13.4µs, with the same catch-up time at 2x.
 //
-// Cores requiring CCCU operate at significantly higher fMax than their natural frequency.  The
-// Sega CD uses a 12.5MHz (80ns) Motorola 68000; the 32X uses a 23MHz (43ns) SH2.  If these cannot
-// run at 4x, then the core must buffer audio samples—although the buffer can be a few dozen
+// Cores operate at significantly higher fMax than their natural frequency to use CATC.  The Sega
+// CD uses a 12.5MHz (80ns) Motorola 68000; the 32X uses a 23MHz (43ns) SH2.  If these cannot run
+// at 4x, then the core must buffer audio samples—although the buffer can be a few dozen
 // microseconds.
 //
-// This also has a frequent cycle-check feature for cycle-accurate timing control (CATC) by running
-// the (multiplied) reference clock slightly-slow and checking frequently for lag, then
-// accelerating.
+// This also has a frequent cycle-check feature running the (multiplied) reference clock
+// slightly-slow and checking frequently for lag, then accelerating.
 
-module ClockCCU
+module RetroCATC
 #(
     parameter int ClockFactor = 2,
     parameter int CoreClock = 200000000, // 200MHz FPGA core clock
@@ -39,9 +38,9 @@ module ClockCCU
 (
     input Clk,
     input Delay, // Create a delay
-    input CeIn,
+    input ClkEn,
     input Reset,
-    output Ce
+    output ClkEnOut
 );
     // Number of core clock cycles that pass between tests
     localparam int CoreCheckCycles = CoreClock / 2**TestFrequency;
@@ -71,7 +70,7 @@ module ClockCCU
     
     // Enable at the divided clock frequency or when catching up, but not when delaying.
     // Don't run at the full reference clock
-    assign Ce = (!ReferenceClockDiv || CatchUp > 0) && !Delay && CeIn && !CoreClockDiv;
+    assign ClkEnOut = (!ReferenceClockDiv || CatchUp > 0) && !Delay && ClkEn && !CoreClockDiv;
     
     always_ff @(posedge Clk)
     if (Reset)
@@ -85,7 +84,7 @@ module ClockCCU
     end
     
     always_ff @(posedge Clk)
-    if (CeIn && !Reset)
+    if (ClkEn && !Reset)
     begin
         if (CoreCycles == CoreClock - 1)
         begin

@@ -16,14 +16,10 @@ module RetroConsole
     RetroComm.Target Comm,
     
     // System memory
-    // XXX:  Should we just use one bus with
+    // XXX:  Should we just use one bus with stacked chips?
     IDDR3.Component DDRChip0,
     IDDR3.Component DDRChip1,
-        
-    // HyperRAM
-    IHyperRAM.Component HyperRAM0,
-    IHyperRAM.Component HyperRAM1,
-    
+
     // Audio-Video
     output logic [12:0] AV,
 
