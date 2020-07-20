@@ -18,7 +18,7 @@ module RetroSRAM
     parameter int DataBusWidth = 1 // bytes
 )
 (
-    RetroMemoryPort.Target Initiator,
+    IRetroMemoryPort.Target Initiator,
     output bit [AddressBusWidth-1:0] Address,
     output logic Write,
     output bit [8*DataBusWidth-1:0] Dout,

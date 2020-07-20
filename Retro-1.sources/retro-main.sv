@@ -13,7 +13,7 @@ module RetroConsole
 
     // Communications port from host
     // Reset and Pause are packets on this interface
-    RetroComm.Target Comm,
+    IRetroComm.Target Comm,
     
     // System memory
     // XXX:  Should we just use one bus with stacked chips?
@@ -45,7 +45,7 @@ module RetroConsole
     output logic [31:0] ExpansionPortOut,
     
     // Core
-    RetroComm.Initiator Core
+    IRetroComm.Initiator Core
 );
 
 endmodule

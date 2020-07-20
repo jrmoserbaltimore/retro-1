@@ -112,7 +112,7 @@ module RetroHyperRAM
 (
     input logic Clk, // HyperRAM reference clock
     input logic ClkN, // Negative clock
-    RetroMemoryPort.Target Initiator,
+    IRetroMemoryPort.Target Initiator,
     IHyperRAM.Controller HyperRAM
 );
 

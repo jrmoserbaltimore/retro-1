@@ -12,7 +12,7 @@ module RetroBRAM
     parameter string DeviceType = "Xilinx"
 )
 (
-    RetroMemoryPort.Target Initiator
+    IRetroMemoryPort.Target Initiator
 );
     assign Initiator.Ready = '1;
     assign Initiator.DataReady = ~(|Initiator.Write) & Initiator.Access; // Data ready on read

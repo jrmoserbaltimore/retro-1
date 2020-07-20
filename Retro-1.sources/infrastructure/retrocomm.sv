@@ -1,9 +1,9 @@
 // vim: sw=4 ts=4 et
 // RetroSoc communications interface.
 //
-// 16-bit double data rate
+// 16-bit
 
-interface RetroComm;
+interface IRetroComm;
 logic Interrupt;  // Target interrupts host.  Target always treats Strobe as interrupt.
 
 // Data
@@ -17,7 +17,6 @@ modport Initiator
 (
     input Clk,
     input Interrupt,
-
     // Data
     output .Dout(DInitiator), 
     input .Din(DTarget),

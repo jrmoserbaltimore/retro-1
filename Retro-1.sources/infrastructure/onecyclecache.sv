@@ -21,8 +21,8 @@ module RetroOneCycleCache
     parameter int CacheIndexBits = 7 // 16Kio cache, 4 blocks BRAM
 )
 (
-    RetroMemoryPort.Target Cache,
-    RetroMemoryPort.Initiator Storage // Use this to back the cache.  Must be single-cycle.
+    IRetroMemoryPort.Target Cache,
+    IRetroMemoryPort.Initiator Storage // Use this to back the cache.  Must be single-cycle.
 );
     //                         [    Tag      ]   [    Index   ]   [   Offset  ]
     localparam int TagLength = AddressBusWidth - CacheIndexBits - CacheLineBits; 

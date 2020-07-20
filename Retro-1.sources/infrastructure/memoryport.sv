@@ -11,7 +11,7 @@
 // ready for read in FIFO order.  This means a long-latency read from e.g. DRAM can concurrently
 // send address reads and writes while reading output.
 
-interface RetroMemoryPort
+interface IRetroMemoryPort
 #(
     parameter int AddressBusWidth = 16,
     parameter int DataBusWidth = 1 // Bytes
