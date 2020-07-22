@@ -91,7 +91,8 @@ module RetroCATC
             // it's cycle check time
             // One full second has passed.  Align the clocks.
             // Delay is implied here.
-            CatchUp <= CatchUp + ReferenceClock - ReferenceCycles
+            // Doesn't need to add to existing CatchUp because it's checking the whole count
+            CatchUp <= ReferenceClock - ReferenceCycles
                 + (CoreClockDiv == CoreClockDiv - 1 && !ReferenceClockDiv);
             // If the core clock divides evenly, then this happens.
             TestCount <= TestCount + (CoreCycles == CoreCheckCycles * TestCount) ? 1 : 0;
@@ -101,7 +102,7 @@ module RetroCATC
             // Multiply the cycles per check times the number of tests, and subtract the actual
             // cycles passed.
             // Delay is implied here.
-            CatchUp <= CatchUp + CheckCycles * TestCount - CoreCycles
+            CatchUp <= CheckCycles * TestCount - CoreCycles
                 + (CoreClockDiv == CoreClockDiv - 1 && !ReferenceClockDiv);
             if (TestCount[TestFrequency] && TestCount[1])
             begin
