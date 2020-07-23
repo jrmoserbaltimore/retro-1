@@ -170,7 +170,7 @@ Sprites are indicated by two-byte checksum calculated as such:
   1.  Rotate `a` left one bit, with the MSB becoming LSB (`a = a << 1`)
   2.  Add line `l` to `a`
 3.  The resulting 16-bit value is your sprite checksum.
-```
+
 # Game Boy color pack
 
 A color pack specifies color names, sprites, and objects made of sprites.
