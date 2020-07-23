@@ -3,90 +3,79 @@
 //
 // This caches data.  The controller must:
 //
-//  - Raise Delay for CCCU on a miss (Cache.DataReady == 0 when reading)
+//  - Raise Delay for CATC on a miss (Cache.DataReady == 0 when reading)
 //  - Write complete, aligned 128 bytes of cache at once
 //  - Extend the address width to include the bank number as MSB
 //
 // Upon miss, the controller will delay the core; this occurs between standard reference clock
-// ticks, and the catch-up counter only increments on standard ticks, so CCCU will count the tick.
+// ticks, and the catch-up counter only increments on standard ticks, so CATC will count the tick.
 //
-// Cache and Storage must be on the same clock.  Currently the cache can only use BRAM because the
-// 
+// Cache and Storage must be on the same clock.
 
 module RetroOneCycleCache
 #(
     parameter int AddressBusWidth = 16,
     parameter int DataBusWidth = 1, // Bytes XXX: Needed here?
-    parameter int CacheLineBits = 7,
+    parameter int CacheLineBits = 7, // 128-byte cache lines
     parameter int CacheIndexBits = 7 // 16Kio cache, 4 blocks BRAM
 )
 (
     IRetroMemoryPort.Target Cache,
+    IRetroMemoryPort.Initiator Source,
     IRetroMemoryPort.Initiator Storage // Use this to back the cache.  Must be single-cycle.
 );
     //                         [    Tag      ]   [    Index   ]   [   Offset  ]
     localparam int TagLength = AddressBusWidth - CacheIndexBits - CacheLineBits; 
     bit [CacheIndexBits-1:0][TagLength-1:0] CacheVirtTable;
     bit [CacheIndexBits-1:0] CacheValid;
-    // 
-    bit [CacheIndexBits-1:0] CachePutCounter;
+    bit [CacheIndexBits-1:0] CacheDirty;
+    // Count how many bits we've copied in/out
+    bit [CacheLineBits-1:0] CachePutCounter = '0;
 
-    // The cache is always ready
-    assign Cache.Ready = '1;
+    uwire [CacheIndexBits+CacheLineBits-1:0] PhysicalAddress;
+    uwire [CacheIndexBits-1:0] Index;
+    uwire [TagLength-1:0] Tag;
+
+    uwire CacheMiss;
+
+    // From the index down to the offset
+    assign Index = Cache.Address[CacheIndexBits+CacheLineBits-1:CacheLineBits];
+    assign Tag = Cache.Address[AddressBusWidth-1:CacheIndexBits+CacheLineBits];
+
+    // Direct mapped, so the index is not remapped
+    assign PhysicalAddress = Cache.Address[CacheIndexBits+CacheLineBits-1:0];
+
     // Setup data.  Unnecessary values will be ignored.
     assign Storage.Dout = Cache.Din;
     assign Cache.Dout = Storage.Din;
     assign Storage.Write = Cache.Write;
 
-    // Directly translates address to a cache entry.  The cache size is 2**(Index+Offset)
-    always_comb
-    begin
-        var bit [CacheIndexBits+CacheLineBits-1:0] PhysicalAddress;
-        var bit [CacheIndexBits-1:0] Index;
-        var bit [TagLength-1:0] Tag; 
-        // From the index down to the offset
-        Index = Cache.Address[CacheIndexBits+CacheLineBits-1:CacheLineBits];
-        Tag = Cache.Address[AddressBusWidth-1:CacheIndexBits+CacheLineBits];
-        
-        // Direct mapped, so the index is not remapped
-        PhysicalAddress = Cache.Address[CacheIndexBits+CacheLineBits-1:0];
-        // Setup addressing
-        Storage.Address = PhysicalAddress;
+    // Cache hit
+    assign CacheMiss = ~(CacheValid[Index] && CacheVirtTable[Index] == Tag);
 
+    // This has to recognize an ongoing cache miss, write back to the source if dirty, and
+    // retrieve a cache line from the source.
+    //
+    // It also needs to periodically write back dirty cache lines.
+    always_ff @(Cache.Clk)
+    begin
         if (Cache.Access)
         begin
-            if (!Cache.Write)
+            if (Cache.Miss && Source.Ready)
             begin
-                // Reading from cache
-                if (
-                    !CacheValid[Index]
-                    || CacheVirtTable[Index] != Tag
-                   )
+                // Increment
+                CachePutCounter <= CachePutCounter + '1;
+
+                if (CacheValid[Index] && CacheDirty[Index])
                 begin
-                    // Cache miss
-                    Cache.DataReady = '0;
-                    Storage.Access = '0;
+                    // Need to write back first
+                    Source.Address[CacheLineBits-1:0] <= CachePutCounter;
+                    Source.Access <= '1;
                 end
-                else begin
-                    // hit, virtual address translation
-                    Cache.DataReady = '1;
-                    Storage.Access = '1;
+                else
+                begin
                 end
             end
-            else // Cache.Write
-            begin
-                // Immediately do the accounting
-                CacheValid[Index] = '1;
-                CacheVirtTable[Index] = Tag;
-                // Access storage
-                Storage.Access = '1;
-                Cache.DataReady = '0;
-            end
-        end
-        else
-        begin
-            Storage.Access = '0; // Cache.Access
-            Cache.DataReady = '0;
         end
     end
 endmodule
