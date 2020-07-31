@@ -13,7 +13,7 @@
 
 interface IRetroMemoryPort
 #(
-    parameter AddressBusWidth = 23,
+    parameter AddressBusWidth = 16,
     parameter DataBusWidth = 1 // Bytes
 );
 logic Clk;

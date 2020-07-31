@@ -43,7 +43,7 @@ module RetroBRAM
         always @(posedge Initiator.Clk)
         if (Initiator.Access)
         begin
-          Initiator.Dout <= Bram[Initiator.Address];
+          Initiator.DToInitiator <= Bram[Initiator.Address];
         end
 
         genvar i;
@@ -52,7 +52,7 @@ module RetroBRAM
                 if (Initiator.Access && Initiator.Write[i])
                 begin
                     Bram[Initiator.Address][(i+1)*COL_WIDTH-1:i*COL_WIDTH]
-                      <= Initiator.Din[(i+1)*COL_WIDTH-1:i*COL_WIDTH];
+                      <= Initiator.DToTarget[(i+1)*COL_WIDTH-1:i*COL_WIDTH];
                 end
             end
         end
