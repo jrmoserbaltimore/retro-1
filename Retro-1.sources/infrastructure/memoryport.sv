@@ -13,14 +13,15 @@
 
 interface IRetroMemoryPort
 #(
-    parameter int AddressBusWidth = 16,
-    parameter int DataBusWidth = 1 // Bytes
+    parameter AddressBusWidth = 23,
+    parameter DataBusWidth = 1 // Bytes
 );
 logic Clk;
 logic [AddressBusWidth-1:0] Address;
-logic [8*DataBusWidth-1:0] DInitiator;
-logic [8*DataBusWidth-1:0] DTarget;
-logic [8*DataBusWidth-1:0] Access;  // set to 1 when accessing, ever, or it does nothing
+logic [8*DataBusWidth-1:0] DToInitiator;
+logic [8*DataBusWidth-1:0] DToTarget;
+logic Access;  // set to 1 when accessing, ever, or it does nothing
+logic [DataBusWidth-1:0] Mask; // Any bits set to 0 mask any bytes written
 logic Write;
 logic Ready;
 logic DataReady;
@@ -29,9 +30,10 @@ modport Initiator
 (
     input Clk,
     output Address,
-    output .Dout(DInitiator), 
-    input .Din(DTarget),
+    input DToInitiator, 
+    output DToTarget,
     output Access,
+    output Mask,
     output Write,
     input Ready,
     input DataReady
@@ -41,9 +43,10 @@ modport Target
 (
     input Clk,
     input Address,
-    input .Din(DInitiator), 
-    output .Dout(DTarget),
+    output DToInitiator, 
+    input DToTarget,
     input Access,
+    input Mask,
     input Write,
     output Ready,
     output DataReady

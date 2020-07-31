@@ -30,106 +30,123 @@
 
 module RetroCATC
 #(
-    parameter int ClockFactor = 2,
-    parameter int CoreClock = 200000000, // 200MHz FPGA core clock
-    parameter int ReferenceClock = 21477272, // NES reference clock
-    parameter int TestFrequency = 18 // 1 second / 2^n, here 3.81 microseconds
+    parameter ClockFactor = 2,
+    parameter CoreClock = 200000000, // 200MHz FPGA core clock
+    parameter ReferenceClock = 21477272, // NES reference clock
+    parameter TestFrequency = 18 // 1 second / 2^n, here 3.81 microseconds
 )
 (
     input Clk,
     input Delay, // Create a delay
-    input ClkEn,
+    input FastCatchup,
     input Reset,
+    input ClkEn,
     output ClkEnOut
 );
     // Number of core clock cycles that pass between tests
-    localparam int CoreCheckCycles = CoreClock / 2**TestFrequency;
+    localparam CoreCheckCycles = CoreClock / 2**TestFrequency;
     // Number of Reference Clock cycles that should have passed at each check.
-    // ReferenceClock * 2**TestFrequency / CoreClock
-    localparam int CheckCycles = 2**ClockFactor * ReferenceClock / CoreCheckCycles;
+    localparam CheckCycles = ReferenceClock / CoreCheckCycles;
+
+    wire InternalDelay;
+
+    // With cartridges, we can run slower, but not faster by much.  For NES, the reference clock
+    // is 1/9.312 of a 200MHz core clock.  200/9 is 3.47% overclocked, 200/10 is 6.88%
+    // underclocked.  That's 2.8 reference clock cycles ahead, 5.6 cycles behind.  For faster
+    // clocks, the difference will be smaller.
+    //
+    // Cartridge consoles have little RAM or else faster CPUs using CPU cache, so no long delays.
+    // When running from a load image, a 128-byte fetch may take 3-4 microseconds.  It could take
+    // over 100 microseconds to catch up in some cases, in which time more fetch may be required.
+    // In such cases, without external hardware, a higher clock factor works.
+    //
+    // The core divider must operate at a high reference clock speed, but will typically run at
+    // normal speed.  CoreDiv shows the normal reference clock speed, or slightly overclocked.
+    // If it divides evenly, it runs at normal speed when not underclocked; otherwise it runs
+    // faster.
+    localparam CoreDiv = CoreClock / ReferenceClock;
+    // If it divides evenly, the faster divider must be 1 less
+    localparam EvenDiv = (CoreDiv == CoreClock / ReferenceClock) ? 1 : 0;
     
-     // Clock divider to produce reference clock, slightly-slow if inexact.
-     // e.g. 28.9% underclocked for NTSC NES.  With the defaults above, this is 23.64 reference
-     // clock cycles behind at each check or almost 2 CPU clock cycles or 6 PPU cycles, checked
-     // every 3.81 microseconds
-     //
-     // The clock factor is how much faster the reference clock should run, so multiplies the
-     // reference clock.  Adding 1 is a substitute for ceiling.
-    localparam int CoreDiv = 1 + (CoreClock / (ReferenceClock * 2**ClockFactor));
- 
-    // Catch-up rate
-    localparam int CoreDivCatchup = ClockFactor * ReferenceClock / CoreClock;
-    localparam int ClockDivBits = 2**$clog2(CoreDiv);
-    
-    bit [ClockDivBits-1:0] CoreClockDiv;
-    bit [ClockFactor-1:0] ReferenceClockDiv;
+    // Catch-up rate uses a multiple of the reference clock
+    localparam CoreDivCatchup = CoreClock / (ClockFactor * ReferenceClock);
+    localparam ClockDivBits = 2**$clog2(CoreDivCatchup);
+
+    bit [ClockDivBits-1:0] ReferenceClockDiv;
     bit [15:0] CatchUp;
-    bit [29:0] CoreCycles; // Core cycle counter
-    bit [29:0] ReferenceCycles; // Reference cycle counting
+ 
+    bit [$clog2(CoreClock):0] CoreCycles; // Core cycle counter
+    bit [$clog2(ReferenceClock):0] ReferenceCycles; // Reference cycle counting
     bit [TestFrequency:0] TestCount; // Yes it's meant to be 1 bit wider
+
+    wire ReferenceTick;
+    wire FastReferenceTick;
+    wire SlowReferenceTick;
     
+    // Tick once the divider counts up
+    assign ReferenceTick = (ReferenceClockDiv == CoreDiv - 1);
+    // If running fast, i.e. cartless, use the faster CoreDivCatchup;
+    // else use the reference tick.  If the reference tick is exactly accurate, speed it up
+    // slightly.
+    assign FastReferenceTick = 
+                  ReferenceClockDiv == ((FastCatchup ? CoreDivCatchup : CoreDiv - EvenDiv) - 1);
+    // Slow the reference clock down slightly
+    assign SlowReferenceTick =
+                  ReferenceClockDiv == (CoreDiv + 1);
+    // Don't need to count missed ticks because deviation is calculated in full at each test cycle*******
     // Enable at the divided clock frequency or when catching up, but not when delaying.
     // Don't run at the full reference clock
-    assign ClkEnOut = (!ReferenceClockDiv || CatchUp > 0) && !Delay && ClkEn && !CoreClockDiv;
+    wire CEOut;
+    assign CEOut = ClkEn && !InternalDelay &&
+                      (
+                       (CatchUp > 0  && FastReferenceTick) || // Speed up when behind
+                       (CatchUp == 0 && ReferenceTick) ||     // Normal speed
+                       (CatchUp < 0  && SlowReferenceTick)    // Slow down when ahead
+                      );
+    assign ClkEnOut = CEOut;
+
+    // Delay if CatchUp is negative i.e. we're ahead and clock needs to slow down.
+    // In FastCatchup mode, flat out stop; otherwise the slow reference tick will take over 
+    assign InternalDelay = Delay || (CatchUp < 0 && !FastCatchup);
     
     always_ff @(posedge Clk)
     if (Reset)
     begin
-        CoreClockDiv = '0;
-        ReferenceClockDiv = '0;
-        CatchUp = '0;
-        CoreCycles = '0;
-        ReferenceCycles = '0;
-        TestCount = '1;
+        ReferenceClockDiv <= '0;
+        CatchUp <= '0;
+        CoreCycles <= '0;
+        ReferenceCycles <= '0;
+        TestCount <= 'h01;
     end
-    
-    always_ff @(posedge Clk)
-    if (ClkEn && !Reset)
+    else if (ClkEn)
     begin
         if (CoreCycles == CoreClock - 1)
         begin
-            // it's cycle check time
             // One full second has passed.  Align the clocks.
-            // Delay is implied here.
-            // Doesn't need to add to existing CatchUp because it's checking the whole count
-            CatchUp <= ReferenceClock - ReferenceCycles
-                + (CoreClockDiv == CoreClockDiv - 1 && !ReferenceClockDiv);
-            // If the core clock divides evenly, then this happens.
-            TestCount <= TestCount + (CoreCycles == CoreCheckCycles * TestCount) ? 1 : 0;
-        end
-        else if (CoreCycles == CoreCheckCycles * TestCount)
+            // Doesn't need to add to existing CatchUp because it's checking the whole count.
+            // Make sure to include the current tick.
+            CatchUp <= ReferenceClock - (ReferenceCycles + CEOut);
+            // This is an aligning cycle
+            TestCount <= '1;
+        end else if (CoreCycles == CoreCheckCycles * TestCount)
         begin
             // Multiply the cycles per check times the number of tests, and subtract the actual
             // cycles passed.
-            // Delay is implied here.
-            CatchUp <= CheckCycles * TestCount - CoreCycles
-                + (CoreClockDiv == CoreClockDiv - 1 && !ReferenceClockDiv);
-            if (TestCount[TestFrequency] && TestCount[1])
-            begin
-                // Reduce the number of reference clock cycles by 1 second and reset the test
-                // count by as much.  This ensures the precisely-aligned check never fires when
-                // ReferenceCycles > ReferenceClock. 
-                ReferenceCycles <= ReferenceCycles - ReferenceClock; // no tick
-                TestCount[TestFrequency] <= '0;
-            end
-            else
-            begin
-                TestCount <= TestCount + 1;
-            end
-        end
-        else if (CoreClockDiv == CoreDiv - 1)
+            // The reference clock still ticks here, so capture CEOut 
+            CatchUp <= CheckCycles * TestCount // The number of cycles that should have passed
+                       - (ReferenceCycles + CEOut); // The number of cycles that have passed
+            TestCount <= TestCount + 1;
+        end else
         begin
-            // Always increment when ticking on delay
-            if (Delay & !ReferenceClockDiv) CatchUp <= CatchUp + 1;
-            // We're trying to catch up, but the clock is still ticking, so count those ticks too
-            if (!Delay && ReferenceClockDiv != 0 && CatchUp > 0) CatchUp <= CatchUp - 1;
-            // Keep ticking the divider so the clock ticks will line up
-            ReferenceClockDiv <= ReferenceClockDiv + 1;
-            ReferenceCycles <= ReferenceCycles + 1; // Count the tick
+            // Decrement CatchUp unless the real reference clock ticks
+            CatchUp <= CatchUp - CEOut + ReferenceTick;
         end
         // Manage the core clock divider
-        CoreClockDiv <= (CoreClockDiv == CoreDiv - 1) ? 0 : CoreClockDiv + 1;
+        ReferenceClockDiv <= CEOut ? 0 : ReferenceClockDiv + 1;
         // Manage core clock cycle counter
         CoreCycles <= (CoreCycles == CoreClock - 1) ? '0 : CoreCycles + 1;
+        // If it ticks on the output for any reason, count it
+        ReferenceCycles <= ReferenceCycles + CEOut -
+                          (CoreCycles == CoreClock - 1) ? ReferenceClock : '0;
     end
 endmodule

@@ -6,6 +6,7 @@
 // the console going through the OS to get data.
 
 // XXX:  Should some of these be uwire?
+// FIXME:  Should somehow be callable and configurable, instead of using RetroCoreShim
 module RetroConsole
 (
     // Clock
@@ -47,5 +48,7 @@ module RetroConsole
     // Core
     IRetroComm.Initiator Core
 );
+
+    logic ClkEn;
 
 endmodule
