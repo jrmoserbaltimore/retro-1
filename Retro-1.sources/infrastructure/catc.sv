@@ -33,7 +33,7 @@ module RetroCATC
     parameter ClockFactor = 2,
     parameter CoreClock = 200000000, // 200MHz FPGA core clock
     parameter ReferenceClock = 21477272, // NES reference clock
-    parameter TestFrequency = 16 // 1 second / 2^n, here 3.81 microseconds
+    parameter TestFrequency = 16 // 1 second / 2^n, here 15.26 microseconds
 )
 (
     input Clk,
@@ -43,11 +43,6 @@ module RetroCATC
     input ClkEn,
     output ClkEnOut
 );
-    // Number of core clock cycles that pass between tests
-    localparam CoreCheckCycles = CoreClock / 2**TestFrequency;
-    // Number of Reference Clock cycles that should have passed at each check.
-    localparam CheckCycles = ReferenceClock / 2**TestFrequency;
-
     wire InternalDelay;
 
     // With cartridges, we can run slower, but not faster by much.  For NES, the reference clock
@@ -73,22 +68,23 @@ module RetroCATC
     localparam CoreDivCatchup = CoreClock / (ClockFactor * ReferenceClock);
     localparam ClockDivBits = 2**$clog2(CoreDivCatchup);
 
-    bit [ClockDivBits-1:0] FastReferenceClockDiv = '0;
-    bit [ClockDivBits-1:0] ReferenceClockDiv = '0;
+    bit [ClockDivBits:0] FastReferenceClockDiv = '0;
+    bit [ClockDivBits:0] ReferenceClockDiv = '0;
     bit [ClockDivBits:0] SlowReferenceClockDiv = '0;
     bit [ClockDivBits-1:0] TickSuppress = '0;
 
-    bit signed [15:0] CatchUp;
+    bit signed [21:0] CatchUp; // 48ms @ 21MHz, 5.24ms @ 200MHz
  
     bit [$clog2(CoreClock):0] CoreCycles; // Core cycle counter
-    bit [$clog2(ReferenceClock):0] ReferenceCycles; // Reference cycle counting
-    bit [TestFrequency:0] TestCount; // Yes it's meant to be 1 bit wider
+    bit signed [$clog2(ReferenceClock):0] ReferenceCycles; // Reference cycle counting
+    // Needs to use this strategy to avoid compounding rounding error enormously
+    bit [$clog2(ReferenceClock)+TestFrequency:0] ExpectedCycles;
+    bit [$clog2(CoreClock)+TestFrequency:0] CoreExpectedCycles; 
 
     wire ReferenceTick;
     wire FastReferenceTick;
     wire SlowReferenceTick;
-    
-    
+
     // Tick once the divider counts up
     assign ReferenceTick = (ReferenceClockDiv == (CoreDiv - EvenDiv));
     // If running fast, i.e. cartless, use the faster CoreDivCatchup;
@@ -118,11 +114,14 @@ module RetroCATC
     always_ff @(posedge Clk)
     if (Reset)
     begin
-        ReferenceClockDiv <= '0;
-        CatchUp <= '0;
-        CoreCycles <= '0;
-        ReferenceCycles <= '0;
-        TestCount <= 'h01;
+        ReferenceCycles <= ReferenceClock;
+        // Final reset is in core tick
+        CoreCycles <= CoreClock - 2;
+        // The dividers don't strictly need to align with anything
+        // CoreCycles == CoreClock - 1 phase clears these
+        //CatchUp <= '0;
+        //ExpectedCycles <= ReferenceClock;
+        //CoreExpectedCycles <= CoreClock;
     end
     else if (ClkEn)
     begin
@@ -132,16 +131,17 @@ module RetroCATC
             // Doesn't need to add to existing CatchUp because it's checking the whole count.
             // Make sure to include the current tick.
             CatchUp <= ReferenceClock - (ReferenceCycles + CEOut);
-            // This is an aligning cycle
-            TestCount <= '1;
-        end else if (CoreCycles == CoreCheckCycles * TestCount)
+            ExpectedCycles <= ReferenceClock;
+            CoreExpectedCycles <= CoreClock;
+        end else if (CoreCycles == (CoreExpectedCycles >> TestFrequency))
         begin
             // Multiply the cycles per check times the number of tests, and subtract the actual
             // cycles passed.
             // The reference clock still ticks here, so capture CEOut 
-            CatchUp <= CheckCycles * TestCount // The number of cycles that should have passed
+            CatchUp <= (ExpectedCycles >> TestFrequency)
                        - (ReferenceCycles + CEOut); // The number of cycles that have passed
-            TestCount <= TestCount + 1;
+            ExpectedCycles <= ExpectedCycles + ReferenceClock;
+            CoreExpectedCycles <= CoreExpectedCycles + CoreClock;
         end else
         begin
             // Decrement CatchUp unless the real reference clock ticks
@@ -156,6 +156,6 @@ module RetroCATC
         // If it ticks on the output for any reason, count it
         ReferenceCycles <= ReferenceCycles + CEOut -
                           ((CoreCycles == CoreClock - 1) ? ReferenceClock : '0);
-        TickSuppress <= (CEOut && !ReferenceTick) ? CoreDiv - 2 : (TickSuppress - (TickSuppress > 0));
+        TickSuppress <= (CEOut && !ReferenceTick) ? (CoreDiv >> 1) : (TickSuppress - (TickSuppress > 0));
     end
 endmodule
