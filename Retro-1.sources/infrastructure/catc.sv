@@ -68,12 +68,12 @@ module RetroCATC
     localparam CoreDivCatchup = CoreClock / (ClockFactor * ReferenceClock);
     localparam ClockDivBits = 2**$clog2(CoreDivCatchup);
 
-    bit [ClockDivBits:0] FastReferenceClockDiv = '0;
+    // Resources:  using an Alt clock instead of Fast/Slow moves from 215 to 184 LUT
     bit [ClockDivBits:0] ReferenceClockDiv = '0;
-    bit [ClockDivBits:0] SlowReferenceClockDiv = '0;
+    bit [ClockDivBits:0] AltReferenceClockDiv = '0;
     bit [ClockDivBits-1:0] TickSuppress = '0;
 
-    bit signed [21:0] CatchUp; // 48ms @ 21MHz, 5.24ms @ 200MHz
+    bit signed [TestFrequency:0] CatchUp; // for 16, 3ms @ 21MHz, 327us @ 200MHz
  
     bit [$clog2(CoreClock):0] CoreCycles; // Core cycle counter
     bit signed [$clog2(ReferenceClock):0] ReferenceCycles; // Reference cycle counting
@@ -82,54 +82,57 @@ module RetroCATC
     bit [$clog2(CoreClock)+TestFrequency:0] CoreExpectedCycles; 
 
     wire ReferenceTick;
-    wire FastReferenceTick;
-    wire SlowReferenceTick;
+    wire AltReferenceTick;
+
+    wire AltTickFast;
+    wire OneSecondSync;
+    assign AltTickFast = (CatchUp > 0);
+    assign OneSecondSync = CoreCycles == (CoreClock - 1);
 
     // Tick once the divider counts up
     assign ReferenceTick = (ReferenceClockDiv == (CoreDiv - EvenDiv));
-    // If running fast, i.e. cartless, use the faster CoreDivCatchup;
-    // else use the reference tick.  If the reference tick is exactly accurate, speed it up
-    // slightly.
-    assign FastReferenceTick = 
-                  FastReferenceClockDiv == ((FastCatchup ? CoreDivCatchup : CoreDiv - EvenDiv) - 1);
-    // Slow the reference clock down slightly
-    assign SlowReferenceTick =
-                  SlowReferenceClockDiv == (CoreDiv + 1);
+    assign AltReferenceTick =
+    // If running fast, i.e. cartless, use the faster CoreDivCatchup; else use the reference tick.
+    //  If the reference tick is exactly accurate, speed it up slightly.
+                  AltReferenceClockDiv == (AltTickFast ?
+                                          (FastCatchup ? CoreDivCatchup : CoreDiv - EvenDiv) - 1
+                                          // Slow down if not running fast
+                                          : (CoreDiv + 1));
     // Don't need to count missed ticks because deviation is calculated in full at each test cycle*******
     // Enable at the divided clock frequency or when catching up, but not when delaying.
     // Don't run at the full reference clock
     wire CEOut;
     assign CEOut = ClkEn && !InternalDelay &&
                       (
-                       (CatchUp > 0  && FastReferenceTick) || // Speed up when behind
-                       (CatchUp == 0 && ReferenceTick) ||     // Normal speed
-                       (CatchUp < 0  && SlowReferenceTick)    // Slow down when ahead
+                       (CatchUp == 0 && ReferenceTick) ||  // Normal speed
+                       (CatchUp != 0 && AltReferenceTick)  // Adjust
                       );
     assign ClkEnOut = CEOut;
 
     // Delay if CatchUp is negative i.e. we're ahead and clock needs to slow down.
     // In FastCatchup mode, flat out stop; otherwise the slow reference tick will take over 
     assign InternalDelay = Delay || (CatchUp < 0 && FastCatchup) || (!CatchUp && TickSuppress);
-    
+
+    // FIXME:  Need a way to saturate, i.e. if behind, CatchUp is positive and max; if ahead,
+    // CatchUp is negative and minimum.  These get recomputed either way, and the swing should
+    // never be more than a few microseconds, but in case of more than 327us accumulated delay it
+    // should just run full-speed catch-up until the next check.
     always_ff @(posedge Clk)
     if (Reset)
     begin
         ReferenceCycles <= ReferenceClock;
-        // Final reset is in core tick
+        // Trigger OneSecondSync
         CoreCycles <= CoreClock - 2;
         // The dividers don't strictly need to align with anything
-        // CoreCycles == CoreClock - 1 phase clears these
-        //CatchUp <= '0;
-        //ExpectedCycles <= ReferenceClock;
-        //CoreExpectedCycles <= CoreClock;
+        // OneSecondSync phase clears CatchUp, ExpectedCycles, and CoreExpectedCycles
     end
     else if (ClkEn)
     begin
-        if (CoreCycles == CoreClock - 1)
+        if (OneSecondSync)
         begin
             // One full second has passed.  Align the clocks.
             // Doesn't need to add to existing CatchUp because it's checking the whole count.
-            // Make sure to include the current tick.
+            // Include the current tick (this also saves a few LUTs by reusing the operation)
             CatchUp <= ReferenceClock - (ReferenceCycles + CEOut);
             ExpectedCycles <= ReferenceClock;
             CoreExpectedCycles <= CoreClock;
@@ -148,14 +151,19 @@ module RetroCATC
             CatchUp <= CatchUp - CEOut + ReferenceTick;
         end
         // Manage the core clock divider
-        FastReferenceClockDiv <= FastReferenceTick ? '0 : FastReferenceClockDiv + 1;
-        ReferenceClockDiv <= ReferenceTick ? 0 : ReferenceClockDiv + 1;
-        SlowReferenceClockDiv <= SlowReferenceTick ? '0 : SlowReferenceClockDiv + 1;
+        // ReferenceTick ? 0 : ReferenceClockDiv + 1; // requires 1 more LUT
+        ReferenceClockDiv <= (ReferenceClockDiv + 1) & {(ClockDivBits+1){~ReferenceTick}};
+        AltReferenceClockDiv <= (AltReferenceClockDiv + 1) & {(ClockDivBits+1){~AltReferenceTick}};
         // Manage core clock cycle counter
-        CoreCycles <= (CoreCycles == CoreClock - 1) ? '0 : CoreCycles + 1;
+        CoreCycles <= (CoreCycles + 1) & {($clog2(CoreClock)+1){~OneSecondSync}};
         // If it ticks on the output for any reason, count it
-        ReferenceCycles <= ReferenceCycles + CEOut -
-                          ((CoreCycles == CoreClock - 1) ? ReferenceClock : '0);
-        TickSuppress <= (CEOut && !ReferenceTick) ? (CoreDiv >> 1) : (TickSuppress - (TickSuppress > 0));
+        // Resources:  subtracting the lower line instead raises from 164 LUT to 184 LUT
+        ReferenceCycles <= ReferenceCycles + CEOut - (ReferenceClock & {($clog2(ReferenceClock)+1){OneSecondSync}});
+                          //((CoreCycles == CoreClock - 1) ? ReferenceClock : '0);
+        // Suppress for half the reference clock period
+        if (!FastCatchup)
+            TickSuppress <= CEOut ? ((CoreDiv + 1) >> 1) : (TickSuppress - (TickSuppress > 0));
+        else
+            TickSuppress <= '0;
     end
 endmodule
