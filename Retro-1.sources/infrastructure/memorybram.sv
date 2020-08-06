@@ -7,15 +7,15 @@
 
 module RetroBRAM
 #(
-    parameter int AddressBusWidth = 12,  // 4096 bytes = 1 block 8 bit + ecc on 7-series
-    parameter int DataBusWidth = 1, // Bytes
-    parameter string DeviceType = "Xilinx"
+    parameter AddressBusWidth = 12,  // 4096 bytes = 1 block 8 bit + ecc on 7-series
+    parameter DataBusWidth = 1, // Bytes
+    parameter DeviceType = "Xilinx"
 )
 (
     IRetroMemoryPort.Target Initiator
 );
     assign Initiator.Ready = '1;
-    assign Initiator.DataReady = ~(|Initiator.Write) & Initiator.Access; // Data ready on read
+    assign Initiator.DataReady = ~(Initiator.Write) & Initiator.Access; // Data ready on read
     
     generate
     if (DeviceType == "Xilinx")
@@ -35,10 +35,10 @@ module RetroBRAM
 
             // Initialize memory to all zeroes
             // XXX:  Is this strictly necessary to cause BRAM inferrence?
-            integer ram_index;
-            initial
-                for (ram_index = 0; ram_index < RAM_DEPTH; ram_index = ram_index + 1)
-                    Bram[ram_index] = {(NB_COL*COL_WIDTH){1'b0}};
+            //integer ram_index;
+            //initial
+            //    for (ram_index = 0; ram_index < RAM_DEPTH; ram_index = ram_index + 1)
+            //        Bram[ram_index] = {(NB_COL*COL_WIDTH){1'b0}};
 
         always @(posedge Initiator.Clk)
         if (Initiator.Access)
@@ -49,7 +49,7 @@ module RetroBRAM
         genvar i;
             for (i = 0; i < NB_COL; i = i+1) begin: byte_write
                 always @(posedge Initiator.Clk)
-                if (Initiator.Access && Initiator.Write[i])
+                if (Initiator.Access && Initiator.Write && Initiator.Mask[i])
                 begin
                     Bram[Initiator.Address][(i+1)*COL_WIDTH-1:i*COL_WIDTH]
                       <= Initiator.DToTarget[(i+1)*COL_WIDTH-1:i*COL_WIDTH];

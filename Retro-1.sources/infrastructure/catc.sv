@@ -33,7 +33,7 @@ module RetroCATC
     parameter ClockFactor = 2,
     parameter CoreClock = 200000000, // 200MHz FPGA core clock
     parameter ReferenceClock = 21477272, // NES reference clock
-    parameter TestFrequency = 18 // 1 second / 2^n, here 3.81 microseconds
+    parameter TestFrequency = 16 // 1 second / 2^n, here 3.81 microseconds
 )
 (
     input Clk,
@@ -46,14 +46,15 @@ module RetroCATC
     // Number of core clock cycles that pass between tests
     localparam CoreCheckCycles = CoreClock / 2**TestFrequency;
     // Number of Reference Clock cycles that should have passed at each check.
-    localparam CheckCycles = ReferenceClock / CoreCheckCycles;
+    localparam CheckCycles = ReferenceClock / 2**TestFrequency;
 
     wire InternalDelay;
 
     // With cartridges, we can run slower, but not faster by much.  For NES, the reference clock
     // is 1/9.312 of a 200MHz core clock.  200/9 is 3.47% overclocked, 200/10 is 6.88%
     // underclocked.  That's 2.8 reference clock cycles ahead, 5.6 cycles behind.  For faster
-    // clocks, the difference will be smaller.
+    // clocks, the difference will be smaller.  Note that the overclock has to be faster than the
+    // underclock!  That means the stepped-up clock has to run e.g. 200/8 or 16% faster.
     //
     // Cartridge consoles have little RAM or else faster CPUs using CPU cache, so no long delays.
     // When running from a load image, a 128-byte fetch may take 3-4 microseconds.  It could take
@@ -66,14 +67,18 @@ module RetroCATC
     // faster.
     localparam CoreDiv = CoreClock / ReferenceClock;
     // If it divides evenly, the faster divider must be 1 less
-    localparam EvenDiv = (CoreDiv == CoreClock / ReferenceClock) ? 1 : 0;
+    localparam EvenDiv = !(CoreClock % ReferenceClock);
     
     // Catch-up rate uses a multiple of the reference clock
     localparam CoreDivCatchup = CoreClock / (ClockFactor * ReferenceClock);
     localparam ClockDivBits = 2**$clog2(CoreDivCatchup);
 
-    bit [ClockDivBits-1:0] ReferenceClockDiv;
-    bit [15:0] CatchUp;
+    bit [ClockDivBits-1:0] FastReferenceClockDiv = '0;
+    bit [ClockDivBits-1:0] ReferenceClockDiv = '0;
+    bit [ClockDivBits:0] SlowReferenceClockDiv = '0;
+    bit [ClockDivBits-1:0] TickSuppress = '0;
+
+    bit signed [15:0] CatchUp;
  
     bit [$clog2(CoreClock):0] CoreCycles; // Core cycle counter
     bit [$clog2(ReferenceClock):0] ReferenceCycles; // Reference cycle counting
@@ -83,16 +88,17 @@ module RetroCATC
     wire FastReferenceTick;
     wire SlowReferenceTick;
     
+    
     // Tick once the divider counts up
-    assign ReferenceTick = (ReferenceClockDiv == CoreDiv - 1);
+    assign ReferenceTick = (ReferenceClockDiv == (CoreDiv - EvenDiv));
     // If running fast, i.e. cartless, use the faster CoreDivCatchup;
     // else use the reference tick.  If the reference tick is exactly accurate, speed it up
     // slightly.
     assign FastReferenceTick = 
-                  ReferenceClockDiv == ((FastCatchup ? CoreDivCatchup : CoreDiv - EvenDiv) - 1);
+                  FastReferenceClockDiv == ((FastCatchup ? CoreDivCatchup : CoreDiv - EvenDiv) - 1);
     // Slow the reference clock down slightly
     assign SlowReferenceTick =
-                  ReferenceClockDiv == (CoreDiv + 1);
+                  SlowReferenceClockDiv == (CoreDiv + 1);
     // Don't need to count missed ticks because deviation is calculated in full at each test cycle*******
     // Enable at the divided clock frequency or when catching up, but not when delaying.
     // Don't run at the full reference clock
@@ -107,7 +113,7 @@ module RetroCATC
 
     // Delay if CatchUp is negative i.e. we're ahead and clock needs to slow down.
     // In FastCatchup mode, flat out stop; otherwise the slow reference tick will take over 
-    assign InternalDelay = Delay || (CatchUp < 0 && !FastCatchup);
+    assign InternalDelay = Delay || (CatchUp < 0 && FastCatchup) || (!CatchUp && TickSuppress);
     
     always_ff @(posedge Clk)
     if (Reset)
@@ -142,11 +148,14 @@ module RetroCATC
             CatchUp <= CatchUp - CEOut + ReferenceTick;
         end
         // Manage the core clock divider
-        ReferenceClockDiv <= CEOut ? 0 : ReferenceClockDiv + 1;
+        FastReferenceClockDiv <= FastReferenceTick ? '0 : FastReferenceClockDiv + 1;
+        ReferenceClockDiv <= ReferenceTick ? 0 : ReferenceClockDiv + 1;
+        SlowReferenceClockDiv <= SlowReferenceTick ? '0 : SlowReferenceClockDiv + 1;
         // Manage core clock cycle counter
         CoreCycles <= (CoreCycles == CoreClock - 1) ? '0 : CoreCycles + 1;
         // If it ticks on the output for any reason, count it
         ReferenceCycles <= ReferenceCycles + CEOut -
-                          (CoreCycles == CoreClock - 1) ? ReferenceClock : '0;
+                          ((CoreCycles == CoreClock - 1) ? ReferenceClock : '0);
+        TickSuppress <= (CEOut && !ReferenceTick) ? CoreDiv - 2 : (TickSuppress - (TickSuppress > 0));
     end
 endmodule
