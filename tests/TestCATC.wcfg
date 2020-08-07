@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="TestCATC_behav.wdb" id="1">
+         <top_modules>
+            <top_module name="TestCATC" />
+            <top_module name="glbl" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <zoom_setting>
+      <ZoomStartTime time="199167167fs"></ZoomStartTime>
+      <ZoomEndTime time="199694168fs"></ZoomEndTime>
+      <Cursor1Time time="199255000fs"></Cursor1Time>
+   </zoom_setting>
+   <column_width_setting>
+      <NameColumnWidth column_width="175"></NameColumnWidth>
+      <ValueColumnWidth column_width="118"></ValueColumnWidth>
+   </column_width_setting>
+   <WVObjectSize size="11" />
+   <wvobject fp_name="/TestCATC/clk" type="logic">
+      <obj_property name="ElementShortName">clk</obj_property>
+      <obj_property name="ObjectShortName">clk</obj_property>
+   </wvobject>
+   <wvobject fp_name="group52" type="group">
+      <obj_property name="label">Internal</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject fp_name="/TestCATC/Delay" type="logic">
+         <obj_property name="ElementShortName">Delay</obj_property>
+         <obj_property name="ObjectShortName">Delay</obj_property>
+      </wvobject>
+      <wvobject fp_name="/TestCATC/Fast" type="logic">
+         <obj_property name="ElementShortName">Fast</obj_property>
+         <obj_property name="ObjectShortName">Fast</obj_property>
+      </wvobject>
+      <wvobject fp_name="/TestCATC/ClkEn" type="logic">
+         <obj_property name="ElementShortName">ClkEn</obj_property>
+         <obj_property name="ObjectShortName">ClkEn</obj_property>
+      </wvobject>
+      <wvobject fp_name="/TestCATC/ClkEnOut" type="logic">
+         <obj_property name="ElementShortName">ClkEnOut</obj_property>
+         <obj_property name="ObjectShortName">ClkEnOut</obj_property>
+      </wvobject>
+      <wvobject fp_name="/TestCATC/ClkEnOutStress" type="logic">
+         <obj_property name="ElementShortName">ClkEnOutStress</obj_property>
+         <obj_property name="ObjectShortName">ClkEnOutStress</obj_property>
+      </wvobject>
+      <wvobject fp_name="/TestCATC/Reset" type="logic">
+         <obj_property name="ElementShortName">Reset</obj_property>
+         <obj_property name="ObjectShortName">Reset</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="/TestCATC/CoreClockCount" type="array">
+      <obj_property name="ElementShortName">CoreClockCount[31:0]</obj_property>
+      <obj_property name="ObjectShortName">CoreClockCount[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/TestCATC/ReferenceClockCount" type="array">
+      <obj_property name="ElementShortName">ReferenceClockCount[31:0]</obj_property>
+      <obj_property name="ObjectShortName">ReferenceClockCount[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/TestCATC/StressReferenceClockCount" type="array">
+      <obj_property name="ElementShortName">StressReferenceClockCount[31:0]</obj_property>
+      <obj_property name="ObjectShortName">StressReferenceClockCount[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/TestCATC/ReferenceDifference" type="array">
+      <obj_property name="ElementShortName">ReferenceDifference[15:0]</obj_property>
+      <obj_property name="ObjectShortName">ReferenceDifference[15:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/TestCATC/ReferenceDifferenceMax" type="array">
+      <obj_property name="ElementShortName">ReferenceDifferenceMax[15:0]</obj_property>
+      <obj_property name="ObjectShortName">ReferenceDifferenceMax[15:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/TestCATC/TimeBehind" type="array">
+      <obj_property name="ElementShortName">TimeBehind[23:0]</obj_property>
+      <obj_property name="ObjectShortName">TimeBehind[23:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/TestCATC/TimeBehindMax" type="array">
+      <obj_property name="ElementShortName">TimeBehindMax[23:0]</obj_property>
+      <obj_property name="ObjectShortName">TimeBehindMax[23:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="group30" type="group">
+      <obj_property name="label">CATC</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+      <wvobject fp_name="group31" type="group">
+         <obj_property name="label">Internal</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <wvobject fp_name="/TestCATC/CATC/ClkEnOut" type="logic">
+            <obj_property name="ElementShortName">ClkEnOut</obj_property>
+            <obj_property name="ObjectShortName">ClkEnOut</obj_property>
+         </wvobject>
+         <wvobject fp_name="/TestCATC/CATC/ReferenceClockDiv" type="array">
+            <obj_property name="ElementShortName">ReferenceClockDiv[2:0]</obj_property>
+            <obj_property name="ObjectShortName">ReferenceClockDiv[2:0]</obj_property>
+         </wvobject>
+         <wvobject fp_name="/TestCATC/CATC/AltReferenceClockDiv" type="array">
+            <obj_property name="ElementShortName">AltReferenceClockDiv[2:0]</obj_property>
+            <obj_property name="ObjectShortName">AltReferenceClockDiv[2:0]</obj_property>
+         </wvobject>
+      </wvobject>
+      <wvobject fp_name="/TestCATC/CATC/InternalDelay" type="logic">
+         <obj_property name="ElementShortName">InternalDelay</obj_property>
+         <obj_property name="ObjectShortName">InternalDelay</obj_property>
+      </wvobject>
+      <wvobject fp_name="/TestCATC/CATC/TickSuppress" type="array">
+         <obj_property name="ElementShortName">TickSuppress[1:0]</obj_property>
+         <obj_property name="ObjectShortName">TickSuppress[1:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/TestCATC/CATC/CatchUp" type="array">
+         <obj_property name="ElementShortName">CatchUp[16:0]</obj_property>
+         <obj_property name="ObjectShortName">CatchUp[16:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/TestCATC/CATC/CoreCycles" type="array">
+         <obj_property name="ElementShortName">CoreCycles[27:0]</obj_property>
+         <obj_property name="ObjectShortName">CoreCycles[27:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/TestCATC/CATC/ReferenceCycles" type="array">
+         <obj_property name="ElementShortName">ReferenceCycles[25:0]</obj_property>
+         <obj_property name="ObjectShortName">ReferenceCycles[25:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/TestCATC/CATC/ExpectedCycles" type="array">
+         <obj_property name="ElementShortName">ExpectedCycles[41:0]</obj_property>
+         <obj_property name="ObjectShortName">ExpectedCycles[41:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/TestCATC/CATC/CoreExpectedCycles" type="array">
+         <obj_property name="ElementShortName">CoreExpectedCycles[43:0]</obj_property>
+         <obj_property name="ObjectShortName">CoreExpectedCycles[43:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/TestCATC/CATC/TickHold" type="logic">
+         <obj_property name="ElementShortName">TickHold</obj_property>
+         <obj_property name="ObjectShortName">TickHold</obj_property>
+      </wvobject>
+      <wvobject fp_name="/TestCATC/CATC/ReferenceTick" type="logic">
+         <obj_property name="ElementShortName">ReferenceTick</obj_property>
+         <obj_property name="ObjectShortName">ReferenceTick</obj_property>
+      </wvobject>
+      <wvobject fp_name="/TestCATC/CATC/AltReferenceTick" type="logic">
+         <obj_property name="ElementShortName">AltReferenceTick</obj_property>
+         <obj_property name="ObjectShortName">AltReferenceTick</obj_property>
+      </wvobject>
+      <wvobject fp_name="/TestCATC/CATC/CEOut" type="logic">
+         <obj_property name="ElementShortName">CEOut</obj_property>
+         <obj_property name="ObjectShortName">CEOut</obj_property>
+      </wvobject>
+      <wvobject fp_name="/TestCATC/CATC/AltTickFast" type="logic">
+         <obj_property name="ElementShortName">AltTickFast</obj_property>
+         <obj_property name="ObjectShortName">AltTickFast</obj_property>
+      </wvobject>
+      <wvobject fp_name="/TestCATC/CATC/OneSecondSync" type="logic">
+         <obj_property name="ElementShortName">OneSecondSync</obj_property>
+         <obj_property name="ObjectShortName">OneSecondSync</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="group32" type="group">
+      <obj_property name="label">CATCStress</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+      <wvobject fp_name="group51" type="group">
+         <obj_property name="label">Internal</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <obj_property name="isExpanded"></obj_property>
+         <wvobject fp_name="/TestCATC/CATCStress/ReferenceClockDiv" type="array">
+            <obj_property name="ElementShortName">ReferenceClockDiv[2:0]</obj_property>
+            <obj_property name="ObjectShortName">ReferenceClockDiv[2:0]</obj_property>
+         </wvobject>
+         <wvobject fp_name="/TestCATC/CATCStress/AltReferenceClockDiv" type="array">
+            <obj_property name="ElementShortName">AltReferenceClockDiv[2:0]</obj_property>
+            <obj_property name="ObjectShortName">AltReferenceClockDiv[2:0]</obj_property>
+         </wvobject>
+         <wvobject fp_name="/TestCATC/CATCStress/ClkEnOut" type="logic">
+            <obj_property name="ElementShortName">ClkEnOut</obj_property>
+            <obj_property name="ObjectShortName">ClkEnOut</obj_property>
+         </wvobject>
+         <wvobject fp_name="/TestCATC/CATCStress/Delay" type="logic">
+            <obj_property name="ElementShortName">Delay</obj_property>
+            <obj_property name="ObjectShortName">Delay</obj_property>
+         </wvobject>
+      </wvobject>
+      <wvobject fp_name="/TestCATC/CATCStress/InternalDelay" type="logic">
+         <obj_property name="ElementShortName">InternalDelay</obj_property>
+         <obj_property name="ObjectShortName">InternalDelay</obj_property>
+      </wvobject>
+      <wvobject fp_name="/TestCATC/CATCStress/TickSuppress" type="array">
+         <obj_property name="ElementShortName">TickSuppress[1:0]</obj_property>
+         <obj_property name="ObjectShortName">TickSuppress[1:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/TestCATC/CATCStress/CatchUp" type="array">
+         <obj_property name="ElementShortName">CatchUp[16:0]</obj_property>
+         <obj_property name="ObjectShortName">CatchUp[16:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/TestCATC/CATCStress/CoreCycles" type="array">
+         <obj_property name="ElementShortName">CoreCycles[27:0]</obj_property>
+         <obj_property name="ObjectShortName">CoreCycles[27:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/TestCATC/CATCStress/ReferenceCycles" type="array">
+         <obj_property name="ElementShortName">ReferenceCycles[25:0]</obj_property>
+         <obj_property name="ObjectShortName">ReferenceCycles[25:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/TestCATC/CATCStress/ExpectedCycles" type="array">
+         <obj_property name="ElementShortName">ExpectedCycles[41:0]</obj_property>
+         <obj_property name="ObjectShortName">ExpectedCycles[41:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/TestCATC/CATCStress/CoreExpectedCycles" type="array">
+         <obj_property name="ElementShortName">CoreExpectedCycles[43:0]</obj_property>
+         <obj_property name="ObjectShortName">CoreExpectedCycles[43:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/TestCATC/CATCStress/TickHold" type="logic">
+         <obj_property name="ElementShortName">TickHold</obj_property>
+         <obj_property name="ObjectShortName">TickHold</obj_property>
+      </wvobject>
+      <wvobject fp_name="/TestCATC/CATCStress/ReferenceTick" type="logic">
+         <obj_property name="ElementShortName">ReferenceTick</obj_property>
+         <obj_property name="ObjectShortName">ReferenceTick</obj_property>
+      </wvobject>
+      <wvobject fp_name="/TestCATC/CATCStress/AltReferenceTick" type="logic">
+         <obj_property name="ElementShortName">AltReferenceTick</obj_property>
+         <obj_property name="ObjectShortName">AltReferenceTick</obj_property>
+      </wvobject>
+      <wvobject fp_name="/TestCATC/CATCStress/CEOut" type="logic">
+         <obj_property name="ElementShortName">CEOut</obj_property>
+         <obj_property name="ObjectShortName">CEOut</obj_property>
+      </wvobject>
+      <wvobject fp_name="/TestCATC/CATCStress/AltTickFast" type="logic">
+         <obj_property name="ElementShortName">AltTickFast</obj_property>
+         <obj_property name="ObjectShortName">AltTickFast</obj_property>
+      </wvobject>
+      <wvobject fp_name="/TestCATC/CATCStress/FastCatchup" type="logic">
+         <obj_property name="ElementShortName">FastCatchup</obj_property>
+         <obj_property name="ObjectShortName">FastCatchup</obj_property>
+      </wvobject>
+      <wvobject fp_name="/TestCATC/CATCStress/OneSecondSync" type="logic">
+         <obj_property name="ElementShortName">OneSecondSync</obj_property>
+         <obj_property name="ObjectShortName">OneSecondSync</obj_property>
+      </wvobject>
+   </wvobject>
+</wave_config>

@@ -72,6 +72,7 @@ module RetroCATC
     bit [ClockDivBits:0] ReferenceClockDiv = '0;
     bit [ClockDivBits:0] AltReferenceClockDiv = '0;
     bit [ClockDivBits-1:0] TickSuppress = '0;
+    logic TickHold;
 
     bit signed [TestFrequency:0] CatchUp; // for 16, 3ms @ 21MHz, 327us @ 200MHz
  
@@ -85,33 +86,34 @@ module RetroCATC
     wire AltReferenceTick;
 
     wire AltTickFast;
+    wire [ClockDivBits-1:0] FastTickTime;
     wire OneSecondSync;
     assign AltTickFast = (CatchUp > 0);
+    assign FastTickTime = (FastCatchup ? CoreDivCatchup : CoreDiv - EvenDiv) - 1;
     assign OneSecondSync = CoreCycles == (CoreClock - 1);
 
     // Tick once the divider counts up
     assign ReferenceTick = (ReferenceClockDiv == (CoreDiv - EvenDiv));
-    assign AltReferenceTick =
     // If running fast, i.e. cartless, use the faster CoreDivCatchup; else use the reference tick.
-    //  If the reference tick is exactly accurate, speed it up slightly.
-                  AltReferenceClockDiv == (AltTickFast ?
-                                          (FastCatchup ? CoreDivCatchup : CoreDiv - EvenDiv) - 1
-                                          // Slow down if not running fast
-                                          : (CoreDiv + 1));
+    // If the reference tick is exactly accurate, speed it up slightly.
+    // Harmless bug:  If you switch to fast catch-up while running, you may need to wait for the
+    // divider to overflow.  This just creates additional delay, and the use case for these
+    // switches is practically non-existent anyway; it's visible in the test simulation.
+    assign AltReferenceTick = AltReferenceClockDiv == (AltTickFast ? FastTickTime : (CoreDiv + 1));
     // Don't need to count missed ticks because deviation is calculated in full at each test cycle*******
     // Enable at the divided clock frequency or when catching up, but not when delaying.
     // Don't run at the full reference clock
     wire CEOut;
     assign CEOut = ClkEn && !InternalDelay &&
                       (
-                       (CatchUp == 0 && ReferenceTick) ||  // Normal speed
-                       (CatchUp != 0 && AltReferenceTick)  // Adjust
+                       // Normal speed if !CatchUp, else adjust
+                       CatchUp ? AltReferenceTick : ReferenceTick // Saves no LUT
                       );
     assign ClkEnOut = CEOut;
 
     // Delay if CatchUp is negative i.e. we're ahead and clock needs to slow down.
     // In FastCatchup mode, flat out stop; otherwise the slow reference tick will take over 
-    assign InternalDelay = Delay || (CatchUp < 0 && FastCatchup) || (!CatchUp && TickSuppress);
+    assign InternalDelay = Delay || (CatchUp < 0 && FastCatchup) || ((!CatchUp || TickHold) && TickSuppress);
 
     // FIXME:  Need a way to saturate, i.e. if behind, CatchUp is positive and max; if ahead,
     // CatchUp is negative and minimum.  These get recomputed either way, and the swing should
@@ -148,6 +150,11 @@ module RetroCATC
         end else
         begin
             // Decrement CatchUp unless the real reference clock ticks
+            // CEOut  ReferenceTick  X
+            //     0              0  0
+            //     1              0 -1
+            //     0              1  1
+            //     1              1  0
             CatchUp <= CatchUp - CEOut + ReferenceTick;
         end
         // Manage the core clock divider
@@ -158,12 +165,13 @@ module RetroCATC
         CoreCycles <= (CoreCycles + 1) & {($clog2(CoreClock)+1){~OneSecondSync}};
         // If it ticks on the output for any reason, count it
         // Resources:  subtracting the lower line instead raises from 164 LUT to 184 LUT
-        ReferenceCycles <= ReferenceCycles + CEOut - (ReferenceClock & {($clog2(ReferenceClock)+1){OneSecondSync}});
+        ReferenceCycles <= ReferenceCycles + CEOut -
+                          (ReferenceClock & {($clog2(ReferenceClock)+1){OneSecondSync}});
                           //((CoreCycles == CoreClock - 1) ? ReferenceClock : '0);
         // Suppress for half the reference clock period
-        if (!FastCatchup)
-            TickSuppress <= CEOut ? ((CoreDiv + 1) >> 1) : (TickSuppress - (TickSuppress > 0));
-        else
-            TickSuppress <= '0;
+        TickSuppress <= CEOut ? FastTickTime : (TickSuppress - (TickSuppress > 0));
+        // Make sure to suppress an early tick when entering catch-up mode.
+        // (Syntax saves 3 LUT vs 'if (CEOut) TickHold <= CatchUp == '0;')
+        TickHold <= (CEOut & TickHold) | (!CatchUp);
     end
 endmodule

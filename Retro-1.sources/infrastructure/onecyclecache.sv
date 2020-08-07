@@ -12,7 +12,9 @@
 //
 // Cache and Storage must be on the same clock.
 
-module RetroOneCycleCache
+// TODO:  Set-associative cache e.g. [CacheIndexBits-1:0][TagLength-1:0][Associativity-1:0]
+// TODO:  Way Cache for set-associative caches
+module RetroBasicCache
 #(
     parameter int AddressBusWidth = 16,
     parameter int DataBusWidth = 1, // Bytes XXX: Needed here?
@@ -21,8 +23,8 @@ module RetroOneCycleCache
 )
 (
     IRetroMemoryPort.Target Cache,
-    IRetroMemoryPort.Initiator Source,
-    IRetroMemoryPort.Initiator Storage // Use this to back the cache.  Must be single-cycle.
+    IRetroMemoryPort.Initiator Source, // The thing to cache
+    IRetroMemoryPort.Initiator Storage // Use this to back the cache
 );
     //                         [    Tag      ]   [    Index   ]   [   Offset  ]
     localparam int TagLength = AddressBusWidth - CacheIndexBits - CacheLineBits; 
