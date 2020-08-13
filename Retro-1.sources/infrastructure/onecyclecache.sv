@@ -34,11 +34,11 @@ module RetroBasicCache
     // Count how many bits we've copied in/out
     bit [CacheLineBits-1:0] CachePutCounter = '0;
 
-    uwire [CacheIndexBits+CacheLineBits-1:0] PhysicalAddress;
-    uwire [CacheIndexBits-1:0] Index;
-    uwire [TagLength-1:0] Tag;
+    wire [CacheIndexBits+CacheLineBits-1:0] PhysicalAddress;
+    wire [CacheIndexBits-1:0] Index;
+    wire [TagLength-1:0] Tag;
 
-    uwire CacheMiss;
+    wire CacheHit;
 
     // From the index down to the offset
     assign Index = Cache.Address[CacheIndexBits+CacheLineBits-1:CacheLineBits];
@@ -47,13 +47,14 @@ module RetroBasicCache
     // Direct mapped, so the index is not remapped
     assign PhysicalAddress = Cache.Address[CacheIndexBits+CacheLineBits-1:0];
 
-    // Setup data.  Unnecessary values will be ignored.
+    // When there's a cache miss, DataReady remains 0 
     assign Storage.Dout = Cache.Din;
     assign Cache.Dout = Storage.Din;
-    assign Storage.Write = Cache.Write;
+    assign Storage.Write = Cache.Write && CacheHit;
 
-    // Cache hit
-    assign CacheMiss = ~(CacheValid[Index] && CacheVirtTable[Index] == Tag);
+    // DataReady raised on a cache hit
+    assign CacheHit = (CacheValid[Index] && CacheVirtTable[Index] == Tag);
+    assign Cache.DataReady = CacheHit && Storage.DataReady; 
 
     // This has to recognize an ongoing cache miss, write back to the source if dirty, and
     // retrieve a cache line from the source.
@@ -63,7 +64,7 @@ module RetroBasicCache
     begin
         if (Cache.Access)
         begin
-            if (Cache.Miss && Source.Ready)
+            if (!CacheHit && Source.Ready)
             begin
                 // Increment
                 CachePutCounter <= CachePutCounter + '1;

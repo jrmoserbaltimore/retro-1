@@ -1,0 +1,3 @@
+[submodule "wishbone-crossbar"]
+	path = modules/wishbone-crossbar
+	url = https://github.com/jrmoserbaltimore/wishbone-crossbar.git
