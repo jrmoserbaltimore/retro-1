@@ -1,10 +1,11 @@
 // vim: sw=4 ts=4 et
 // BRAM memory module
 //
-// Used for one-cycle cartridge cache, video RAM, system RAM, and so forth.
+// Used for cartridge cache, video RAM, system RAM, and so forth.
 //
 // For larger (512Kio) RAM, use RetroSRAM. Sega CD for example requires 768Kio of main system RAM.
 
+// FIXME:  rework around Wishbone Classic Pipelined
 module RetroBRAM
 #(
     parameter AddressBusWidth = 12,  // 4096 bytes = 1 block 8 bit + ecc on 7-series
@@ -12,11 +13,12 @@ module RetroBRAM
     parameter DeviceType = "Xilinx"
 )
 (
-    IRetroMemoryPort.Target Initiator
+    IWishbone.SysCon System,
+    //IRetroMemoryPort.Target Initiator
+    IWishbone.Target Initiator
 );
-    assign Initiator.Ready = '1;
-    assign Initiator.DataReady = ~(Initiator.Write) & Initiator.Access; // Data ready on read
-    
+    assign Initiator.STALL = '0;
+
     generate
     if (DeviceType == "Xilinx")
     begin: Xilinx_BRAM_Inferred
@@ -33,28 +35,22 @@ module RetroBRAM
         logic [(NB_COL*COL_WIDTH)-1:0] Bram [RAM_DEPTH-1:0];
         logic [(NB_COL*COL_WIDTH)-1:0] BramData = {(NB_COL*COL_WIDTH){1'b0}};
 
-            // Initialize memory to all zeroes
-            // XXX:  Is this strictly necessary to cause BRAM inferrence?
-            //integer ram_index;
-            //initial
-            //    for (ram_index = 0; ram_index < RAM_DEPTH; ram_index = ram_index + 1)
-            //        Bram[ram_index] = {(NB_COL*COL_WIDTH){1'b0}};
-
-        always @(posedge Initiator.Clk)
-        if (Initiator.Access)
-        begin
-          Initiator.DToInitiator <= Bram[Initiator.Address];
-        end
+        always @(posedge System.CLK)
+        if (Initator.CYC && Initiator.STB) Initiator.DAT_ToInitiator <= Bram[Initiator.ADDR];
 
         genvar i;
-            for (i = 0; i < NB_COL; i = i+1) begin: byte_write
-                always @(posedge Initiator.Clk)
-                if (Initiator.Access && Initiator.Write && Initiator.Mask[i])
-                begin
-                    Bram[Initiator.Address][(i+1)*COL_WIDTH-1:i*COL_WIDTH]
-                      <= Initiator.DToTarget[(i+1)*COL_WIDTH-1:i*COL_WIDTH];
-                end
+        for (i = 0; i < NB_COL; i = i+1) begin: byte_write
+            always @(posedge System.CLK)
+            if (Initiator.CYC && Initiator.STB && Initiator.WE && Initiator.SEL[i])
+            begin
+                Bram[Initiator.ADDR][(i+1)*COL_WIDTH-1:i*COL_WIDTH]
+                  <= Initiator.DAT_ToTarget[(i+1)*COL_WIDTH-1:i*COL_WIDTH];
             end
         end
+    end
     endgenerate
+
+    // Always returns the data on the next clock cycle, no stall    
+    always @(posedge System.CLK)
+        Initiator.ACK <= Initiator.CYC & Initiator.STB;
 endmodule
