@@ -5,16 +5,23 @@
 // as a peripheral.  That CPU's memory controller must request RAM from the DMA bus, rather than
 // the console going through the OS to get data.
 
+// BRAM memory module exposed as Wishbone Classic Pipelined
+//
+// Use WishboneBRAM for cartridge cache, video RAM, system RAM, and so forth.
+//
+// Use WishboneCache or another low-latency RAM for larger (512Kio) RAM. Sega CD for example
+// requires 768Kio of main system RAM.
+
 // XXX:  Should some of these be uwire?
 // FIXME:  Should somehow be callable and configurable, instead of using RetroCoreShim
 module RetroConsole
 (
     // Clock
-    input Clk,
+    IWishbone.SysCon System,
 
     // Communications port from host
     // Reset and Pause are packets on this interface
-    IRetroComm.Target Comm,
+    IWishbone.Target Host,
     
     // System memory
     // XXX:  Should we just use one bus with stacked chips?
@@ -46,7 +53,7 @@ module RetroConsole
     output logic [31:0] ExpansionPortOut,
     
     // Core
-    IRetroComm.Initiator Core
+    IWishbone.Initiator Core
 );
 
     logic ClkEn;
