@@ -36,11 +36,10 @@ module RetroCATC
     parameter TestFrequency = 16 // 1 second / 2^n, here 15.26 microseconds
 )
 (
-    input Clk,
-    input Delay, // Create a delay
+    ISysCon SysCon,
+    input Stall, // Analogous to the STALL signal coming out of the console itself
     input FastCatchup,
-    input Reset,
-    input ClkEn,
+    input ClkEn,  // To pause, just pause ClkEn
     output ClkEnOut
 );
     wire InternalDelay;
@@ -113,14 +112,14 @@ module RetroCATC
 
     // Delay if CatchUp is negative i.e. we're ahead and clock needs to slow down.
     // In FastCatchup mode, flat out stop; otherwise the slow reference tick will take over 
-    assign InternalDelay = Delay || (CatchUp < 0 && FastCatchup) || ((!CatchUp || TickHold) && TickSuppress);
+    assign InternalDelay = Stall || (CatchUp < 0 && FastCatchup) || ((!CatchUp || TickHold) && TickSuppress);
 
     // FIXME:  Need a way to saturate, i.e. if behind, CatchUp is positive and max; if ahead,
     // CatchUp is negative and minimum.  These get recomputed either way, and the swing should
     // never be more than a few microseconds, but in case of more than 327us accumulated delay it
     // should just run full-speed catch-up until the next check.
-    always_ff @(posedge Clk)
-    if (Reset)
+    always_ff @(posedge SysCon.CLK)
+    if (SysCon.RST)
     begin
         ReferenceCycles <= ReferenceClock;
         // Trigger OneSecondSync

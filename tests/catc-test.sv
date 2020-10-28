@@ -10,7 +10,7 @@ timeprecision 1ns;
 logic clk = '0;
 always #5 clk=~clk; 
 
-wire Delay;
+wire Stall;
 wire Fast;
 logic ClkEn = '1;
 logic ClkEnOut;
@@ -27,27 +27,29 @@ bit [23:0] TimeBehindMax;
 
 assign ReferenceDifference = ReferenceClockCount - StressReferenceClockCount;
 
+ISysCon SysCon();
+assign SysCon.CLK = clk;
+assign SysCon.RST = Reset;
+
 RetroCATC #(.CoreClock(100000000))CATC
 (
-    .Clk(clk),
-    .Delay('0),
+    .SysCon(SysCon),
+    .Stall('0),
     .FastCatchup('0),
-    .Reset(Reset),
     .ClkEn(ClkEn),
     .ClkEnOut(ClkEnOut)
 );
 
 RetroCATC #(.CoreClock(100000000))CATCStress
 (
-    .Clk(clk),
-    .Delay(Delay),
+    .SysCon(SysCon),
+    .Stall(Stall),
     .FastCatchup(Fast),
-    .Reset(Reset),
     .ClkEn(ClkEn),
     .ClkEnOut(ClkEnOutStress)
 );
 
-assign Delay = CoreClockCount[13] & CoreClockCount[8];
+assign Stall = CoreClockCount[13] & CoreClockCount[8];
 assign Fast = '1;//CoreClockCount[14];
 
 always_ff @(posedge clk)

@@ -3,11 +3,11 @@
 <!--                                                         -->
 <!-- Copyright 1986-2020 Xilinx, Inc. All Rights Reserved.   -->
 
-<Project Version="7" Minor="49" Path="C:/Users/john/Documents/FPGA/Xilinx/Moonset/Retro-GBC-Mister/retro/Retro-1.xpr">
+<Project Version="7" Minor="49" Path="C:/Users/john/Documents/FPGA/Xilinx/Moonset/Retro-GBColor/retro/Retro-1.xpr">
   <DefaultLaunch Dir="$PRUNDIR"/>
   <Configuration>
     <Option Name="Id" Val="a6291c4b76db4150afc46b2d398ca6a5"/>
-    <Option Name="Part" Val="xc7z020clg400-1"/>
+    <Option Name="Part" Val="xc7a100tfgg676-2"/>
     <Option Name="CompiledLibDir" Val="$PCACHEDIR/compile_simlib"/>
     <Option Name="CompiledLibDirXSim" Val=""/>
     <Option Name="CompiledLibDirModelSim" Val="$PCACHEDIR/compile_simlib/modelsim"/>
@@ -25,7 +25,7 @@
     <Option Name="SimulatorInstallDirRiviera" Val=""/>
     <Option Name="SimulatorInstallDirActiveHdl" Val=""/>
     <Option Name="SimulatorLanguage" Val="Verilog"/>
-    <Option Name="BoardPart" Val="digilentinc.com:arty-z7-20:part0:1.0"/>
+    <Option Name="BoardPart" Val=""/>
     <Option Name="BoardPartRepoPaths" Val="$PPRDIR/../../../../../../AppData/Roaming/Xilinx/Vivado/2019.2/xhub/board_store"/>
     <Option Name="ActiveSimSet" Val="infrastructure_simulation"/>
     <Option Name="DefaultLib" Val="mst_retro1"/>
@@ -40,7 +40,7 @@
     <Option Name="IPStaticSourceDir" Val="$PIPUSERFILESDIR/ipstatic"/>
     <Option Name="EnableBDX" Val="FALSE"/>
     <Option Name="DSABoardId" Val="arty-z7-20"/>
-    <Option Name="WTXSimLaunchSim" Val="53"/>
+    <Option Name="WTXSimLaunchSim" Val="63"/>
     <Option Name="WTModelSimLaunchSim" Val="0"/>
     <Option Name="WTQuestaLaunchSim" Val="0"/>
     <Option Name="WTIesLaunchSim" Val="0"/>
@@ -69,46 +69,14 @@
   <FileSets Version="1" Minor="31">
     <FileSet Name="sources_1" Type="DesignSrcs" RelSrcDir="$PSRCDIR/sources_1">
       <Filter Type="Srcs"/>
-      <File Path="$PPRDIR/Retro-1.sources/infrastructure/catc.sv">
+      <File Path="$PPRDIR/rtl/infrastructure/catc.sv">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/Retro-1.sources/infrastructure/ddr3controller.sv">
-        <FileInfo>
-          <Attr Name="AutoDisabled" Val="1"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/Retro-1.sources/infrastructure/retrocomm.sv">
-        <FileInfo>
-          <Attr Name="AutoDisabled" Val="1"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/Retro-1.sources/retro-main.sv">
-        <FileInfo>
-          <Attr Name="AutoDisabled" Val="1"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/Retro-1.sources/infrastructure/memoryhyperram.sv">
-        <FileInfo>
-          <Attr Name="AutoDisabled" Val="1"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/Retro-1.sources/infrastructure/memoryport.sv">
+      <File Path="$PPRDIR/rtl/retro-main.sv">
         <FileInfo>
           <Attr Name="AutoDisabled" Val="1"/>
           <Attr Name="UsedIn" Val="synthesis"/>
@@ -126,14 +94,7 @@
       </File>
       <File Path="$PPRDIR/modules/wishbone-modules/rtl/basiccache.sv">
         <FileInfo>
-          <Attr Name="AutoDisabled" Val="1"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/Retro-1.sources/infrastructure/memorysram.sv">
-        <FileInfo>
+          <Attr Name="Library" Val="wbmodules"/>
           <Attr Name="AutoDisabled" Val="1"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>
@@ -142,6 +103,7 @@
       </File>
       <File Path="$PPRDIR/modules/wishbone-modules/rtl/crossbar.sv">
         <FileInfo>
+          <Attr Name="Library" Val="wbmodules"/>
           <Attr Name="AutoDisabled" Val="1"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>
@@ -150,6 +112,7 @@
       </File>
       <File Path="$PPRDIR/modules/wishbone-modules/rtl/skid-buffer.sv">
         <FileInfo>
+          <Attr Name="Library" Val="wbmodules"/>
           <Attr Name="AutoDisabled" Val="1"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>
@@ -158,6 +121,7 @@
       </File>
       <File Path="$PPRDIR/modules/wishbone-modules/rtl/wishbone-interface.sv">
         <FileInfo>
+          <Attr Name="Library" Val="wbmodules"/>
           <Attr Name="AutoDisabled" Val="1"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>
@@ -165,6 +129,15 @@
         </FileInfo>
       </File>
       <File Path="$PPRDIR/modules/wishbone-modules/rtl/bram.sv">
+        <FileInfo>
+          <Attr Name="Library" Val="wbmodules"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/rtl/video/ascal.sv">
         <FileInfo>
           <Attr Name="AutoDisabled" Val="1"/>
           <Attr Name="UsedIn" Val="synthesis"/>
@@ -213,8 +186,16 @@
     </FileSet>
     <FileSet Name="infrastructure_simulation" Type="SimulationSrcs" RelSrcDir="$PSRCDIR/infrastructure_simulation">
       <Filter Type="Srcs"/>
-      <File Path="$PPRDIR/Retro-1.sources/infrastructure/catc.sv">
+      <File Path="$PPRDIR/rtl/infrastructure/catc.sv">
         <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/modules/wishbone-modules/rtl/wishbone-interface.sv">
+        <FileInfo>
+          <Attr Name="Library" Val="wbmodules"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>
           <Attr Name="UsedIn" Val="simulation"/>
@@ -266,9 +247,11 @@
     </Simulator>
   </Simulators>
   <Runs Version="1" Minor="11">
-    <Run Id="synth_1" Type="Ft3:Synth" SrcSet="sources_1" Part="xc7z020clg400-1" ConstrsSet="ArtyZ7-20" Description="Vivado Synthesis Defaults" AutoIncrementalCheckpoint="false" WriteIncrSynthDcp="false" State="current" Dir="$PRUNDIR/synth_1" IncludeInArchive="true">
+    <Run Id="synth_1" Type="Ft3:Synth" SrcSet="sources_1" Part="xc7a100tfgg676-2" ConstrsSet="ArtyZ7-20" Description="Vivado Synthesis Defaults" AutoIncrementalCheckpoint="false" WriteIncrSynthDcp="false" State="current" Dir="$PRUNDIR/synth_1" IncludeInArchive="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2020"/>
+        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2020">
+          <Desc>Vivado Synthesis Defaults</Desc>
+        </StratHandle>
         <Step Id="synth_design">
           <Option Id="FlattenHierarchy">0</Option>
           <Option Id="ResourceSharing">1</Option>
@@ -279,9 +262,11 @@
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
       <RQSFiles/>
     </Run>
-    <Run Id="impl_1" Type="Ft2:EntireDesign" Part="xc7z020clg400-1" ConstrsSet="ArtyZ7-20" Description="Default settings for Implementation." AutoIncrementalCheckpoint="false" WriteIncrSynthDcp="false" State="current" SynthRun="synth_1" IncludeInArchive="true" GenFullBitstream="true">
+    <Run Id="impl_1" Type="Ft2:EntireDesign" Part="xc7a100tfgg676-2" ConstrsSet="ArtyZ7-20" Description="Default settings for Implementation." AutoIncrementalCheckpoint="false" WriteIncrSynthDcp="false" State="current" SynthRun="synth_1" IncludeInArchive="true" GenFullBitstream="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2020"/>
+        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2020">
+          <Desc>Default settings for Implementation.</Desc>
+        </StratHandle>
         <Step Id="init_design"/>
         <Step Id="opt_design"/>
         <Step Id="power_opt_design"/>
@@ -297,9 +282,7 @@
       <RQSFiles/>
     </Run>
   </Runs>
-  <Board>
-    <Jumpers/>
-  </Board>
+  <Board/>
   <DashboardSummary Version="1" Minor="0">
     <Dashboards>
       <Dashboard Name="default_dashboard">

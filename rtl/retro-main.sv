@@ -12,21 +12,18 @@
 // Use WishboneCache or another low-latency RAM for larger (512Kio) RAM. Sega CD for example
 // requires 768Kio of main system RAM.
 
-// XXX:  Should some of these be uwire?
-// FIXME:  Should somehow be callable and configurable, instead of using RetroCoreShim
 module RetroConsole
 (
     // Clock
-    IWishbone.SysCon System,
+    input logic Clk,
+    input logic Reset,
 
-    // Communications port from host
-    // Reset and Pause are packets on this interface
-    IWishbone.Target Host,
-    
     // System memory
-    // XXX:  Should we just use one bus with stacked chips?
-    IDDR3.Component DDRChip0,
-    IDDR3.Component DDRChip1,
+    // FIXME:  Not Wishbone all the way down; need real I/O to DDR and HyperRAM
+    IWishbone.Initiator DDRBus0,
+    IWishbone.Initiator DDRBus1,
+    IWishbone.Initiator HyperRAM0,
+    IWishbone.Initiator HyperRAM1,
 
     // Audio-Video
     output logic [12:0] AV,
@@ -39,23 +36,41 @@ module RetroConsole
     // Playstation 2 or other demanding hardware by adding an FPGA to offload functions.
 
     // Cartridge bus wide enough for NES, 69 I/O
+    // XXX:  Just make this the expansion port?
     output logic CartridgeClk,
     input logic [68:0] CartridgeIn,
     output logic [68:0] CartridgeOut,
     
-    // Controller I/O, from µC
-    input logic ControllerClk,
-    input logic ControllerIn,
-    output logic ControllerOut,
-        
+    // SPI for microcontroller
+    input logic MISO,
+    output logic MOSI,
+    output logic SPICS,
+    output logic SPIClk,
+
     // Expansion
     input logic [31:0] ExpansionPortIn,
-    output logic [31:0] ExpansionPortOut,
-    
-    // Core
-    IWishbone.Initiator Core
+    output logic [31:0] ExpansionPortOut
 );
 
     logic ClkEn;
 
+    // TODO:
+    //  - Instantiate DDR and HyperRAM controllers, if configured
+    //  - Instantiate Wishbone interface to memory elements
+    //  - Instantiate SPI command manager
+    //  - Instantiate DMA
+    //  - Instantiate video filters
+    //  - Instantiate audio filters
+    //  - Instantiate AV controller
+    //  - Instantiate RISC-V CPU
+    //  - Release the reset
+
+    // Boot porcess:
+    //  - Microcontroller configures FPGA
+    //  - Upon reset, DMA points to SPI controller signaling boot ROM
+    //  - Microcontroller provides the loaded boot ROM (from SD card)
+    //  - Boot ROM copies itself to RAM, disables boot ROM
+    //  - Boot begins
+    //
+    //  All further boot process considerations are in software.
 endmodule
